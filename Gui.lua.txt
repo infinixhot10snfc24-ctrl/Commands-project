@@ -41,60 +41,51 @@ end
 local btn = _N("TextButton", sg)
 btn.Size = _U(0, 54, 0, 54)
 btn.Position = _U(0, 20, 0, 20)
-btn.BackgroundColor3 = _C(18, 18, 24)
+btn.BackgroundColor3 = _C(15, 15, 20)
 btn.Text = ""
 btn.AutoButtonColor = false
 btn.Active = true
 btn.ZIndex = 10
 _N("UICorner", btn).CornerRadius = UDim.new(1, 0)
-local btnGrad = _N("UIGradient", btn)
-btnGrad.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0, _C(28, 28, 38)),
-	ColorSequenceKeypoint.new(1, _C(12, 12, 18)),
-}
-btnGrad.Rotation = 135
 local s1 = _N("UIStroke", btn)
 s1.Color = _C(0, 170, 255)
 s1.Thickness = 1.5
 local topLabel = _N("TextLabel", btn)
-topLabel.Size = _U(1, 0, 0.5, -1)
-topLabel.Position = _U(0, 0, 0, 0)
+topLabel.Size = _U(1, 0, 0.5, -2)
+topLabel.Position = _U(0, 0, 0, 2)
 topLabel.BackgroundTransparency = 1
-topLabel.Text = "\u{2318}"
+topLabel.Text = "/ /"
 topLabel.TextColor3 = _C(0, 170, 255)
 topLabel.Font = _GB
-topLabel.TextSize = 16
+topLabel.TextSize = 13
 topLabel.ZIndex = 11
 local divLine = _N("Frame", btn)
-divLine.Size = _U(0.7, 0, 0, 1)
-divLine.Position = _U(0.15, 0, 0.5, 0)
-divLine.BackgroundColor3 = _C(0, 130, 210)
+divLine.Size = _U(0.65, 0, 0, 2)
+divLine.Position = _U(0.175, 0, 0.5, -1)
+divLine.BackgroundColor3 = _C(0, 150, 230)
 divLine.BorderSizePixel = 0
 divLine.ZIndex = 11
-local divGlow = _N("UIGradient", divLine)
-divGlow.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0, _C(0,0,0)),
-	ColorSequenceKeypoint.new(0.5, _C(255,255,255)),
-	ColorSequenceKeypoint.new(1, _C(0,0,0)),
-}
+_N("UICorner", divLine).CornerRadius = UDim.new(1, 0)
 local botLabel = _N("TextLabel", btn)
-botLabel.Size = _U(1, 0, 0.5, -1)
-botLabel.Position = _U(0, 0, 0.5, 1)
+botLabel.Size = _U(1, 0, 0.5, -2)
+botLabel.Position = _U(0, 0, 0.5, 2)
 botLabel.BackgroundTransparency = 1
 botLabel.Text = "CMD"
-botLabel.TextColor3 = _C(200, 200, 210)
+botLabel.TextColor3 = _C(180, 190, 210)
 botLabel.Font = _GB
-botLabel.TextSize = 11
+botLabel.TextSize = 12
 botLabel.ZIndex = 11
 btn.MouseEnter:Connect(function()
-	ts:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = _C(24, 24, 34)}):Play()
 	ts:Create(s1, TweenInfo.new(0.15), {Thickness = 2.5, Color = _C(30, 190, 255)}):Play()
-	ts:Create(topLabel, TweenInfo.new(0.15), {TextColor3 = _C(30, 200, 255)}):Play()
+	ts:Create(topLabel, TweenInfo.new(0.15), {TextColor3 = _C(60, 210, 255)}):Play()
+	ts:Create(divLine, TweenInfo.new(0.15), {BackgroundColor3 = _C(40, 180, 255)}):Play()
+	ts:Create(botLabel, TweenInfo.new(0.15), {TextColor3 = _C(220, 230, 255)}):Play()
 end)
 btn.MouseLeave:Connect(function()
-	ts:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = _C(18, 18, 24)}):Play()
 	ts:Create(s1, TweenInfo.new(0.15), {Thickness = 1.5, Color = _C(0, 170, 255)}):Play()
 	ts:Create(topLabel, TweenInfo.new(0.15), {TextColor3 = _C(0, 170, 255)}):Play()
+	ts:Create(divLine, TweenInfo.new(0.15), {BackgroundColor3 = _C(0, 150, 230)}):Play()
+	ts:Create(botLabel, TweenInfo.new(0.15), {TextColor3 = _C(180, 190, 210)}):Play()
 end)
 makeDraggable(btn)
 local cmdFrame = _N("Frame", sg)
