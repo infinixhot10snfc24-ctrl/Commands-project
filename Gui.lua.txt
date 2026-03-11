@@ -41,114 +41,16 @@ end
 local btn = _N("TextButton", sg)
 btn.Size = _U(0, 56, 0, 56)
 btn.Position = _U(0, 20, 0, 20)
-btn.BackgroundColor3 = _C(12, 12, 18)
+btn.BackgroundTransparency = 1
 btn.Text = ""
 btn.AutoButtonColor = false
 btn.Active = true
 btn.ZIndex = 10
-_N("UICorner", btn).CornerRadius = UDim.new(1, 0)
-local s1 = _N("UIStroke", btn)
-s1.Color = _C(0, 150, 220)
-s1.Thickness = 1.5
-
--- Arc outline di luar lingkaran (slightly bigger, same corner radius)
-local arcRing = _N("Frame", btn)
-arcRing.Size = _U(1, 10, 1, 10)
-arcRing.Position = _U(0, -5, 0, -5)
-arcRing.BackgroundTransparency = 1
-arcRing.ZIndex = 9
-_N("UICorner", arcRing).CornerRadius = UDim.new(1, 0)
-local arcStroke = _N("UIStroke", arcRing)
-arcStroke.Color = _C(0, 120, 200)
-arcStroke.Thickness = 1
-local arcGrad = _N("UIGradient", arcStroke)
-arcGrad.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0,   _C(0, 0, 0)),
-	ColorSequenceKeypoint.new(0.3, _C(255, 255, 255)),
-	ColorSequenceKeypoint.new(0.7, _C(255, 255, 255)),
-	ColorSequenceKeypoint.new(1,   _C(0, 0, 0)),
-}
-arcGrad.Rotation = 45
-
--- Teks CMD bagian atas (di atas slash) — clipper
-local topClip = _N("Frame", btn)
-topClip.Size = _U(1, 0, 0.5, -3)
-topClip.Position = _U(0, 0, 0, 0)
-topClip.BackgroundTransparency = 1
-topClip.ClipsDescendants = true
-topClip.ZIndex = 11
-local cmdTop = _N("TextLabel", topClip)
-cmdTop.Size = _U(1, 0, 2, 0)
-cmdTop.Position = _U(0, 0, 0, 0)
-cmdTop.BackgroundTransparency = 1
-cmdTop.Text = "CMD"
-cmdTop.TextColor3 = _C(220, 232, 255)
-cmdTop.Font = _GB
-cmdTop.TextSize = 15
-cmdTop.ZIndex = 12
-
--- Teks CMD bagian bawah (di bawah slash) — clipper, sedikit lebih redup
-local botClip = _N("Frame", btn)
-botClip.Size = _U(1, 0, 0.5, -3)
-botClip.Position = _U(0, 0, 0.5, 3)
-botClip.BackgroundTransparency = 1
-botClip.ClipsDescendants = true
-botClip.ZIndex = 11
-local cmdBot = _N("TextLabel", botClip)
-cmdBot.Size = _U(1, 0, 2, 0)
-cmdBot.Position = _U(0, 0, -1, 0)
-cmdBot.BackgroundTransparency = 1
-cmdBot.Text = "CMD"
-cmdBot.TextColor3 = _C(100, 120, 160)
-cmdBot.Font = _GB
-cmdBot.TextSize = 15
-cmdBot.ZIndex = 12
-
--- Slash miring [\] — rotasi 30 derajat biar keliatan miring
-local slash = _N("Frame", btn)
-slash.Size = _U(0.78, 0, 0, 2)
-slash.Position = _U(0.11, 0, 0.5, -1)
-slash.BackgroundColor3 = _C(0, 180, 255)
-slash.BorderSizePixel = 0
-slash.Rotation = 15
-slash.ZIndex = 13
-_N("UICorner", slash).CornerRadius = UDim.new(1, 0)
-local slashGrad = _N("UIGradient", slash)
-slashGrad.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0,   _C(0, 80, 180)),
-	ColorSequenceKeypoint.new(0.5, _C(255, 255, 255)),
-	ColorSequenceKeypoint.new(1,   _C(0, 80, 180)),
-}
-
--- Afterglow tebasan — flash tipis yang lebih lebar, sedikit transparan
-local slashGlow = _N("Frame", btn)
-slashGlow.Size = _U(0.78, 0, 0, 6)
-slashGlow.Position = _U(0.11, 0, 0.5, -3)
-slashGlow.BackgroundColor3 = _C(0, 160, 255)
-slashGlow.BackgroundTransparency = 0.75
-slashGlow.BorderSizePixel = 0
-slashGlow.Rotation = 15
-slashGlow.ZIndex = 12
-_N("UICorner", slashGlow).CornerRadius = UDim.new(1, 0)
-
-btn.MouseEnter:Connect(function()
-	ts:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = _C(18, 18, 28)}):Play()
-	ts:Create(s1, TweenInfo.new(0.15), {Thickness = 2, Color = _C(40, 200, 255)}):Play()
-	ts:Create(arcStroke, TweenInfo.new(0.15), {Color = _C(0, 170, 255), Thickness = 1.5}):Play()
-	ts:Create(slash, TweenInfo.new(0.15), {BackgroundColor3 = _C(60, 210, 255)}):Play()
-	ts:Create(slashGlow, TweenInfo.new(0.15), {BackgroundTransparency = 0.6}):Play()
-	ts:Create(cmdTop, TweenInfo.new(0.15), {TextColor3 = _C(255, 255, 255)}):Play()
-	ts:Create(cmdBot, TweenInfo.new(0.15), {TextColor3 = _C(120, 150, 200)}):Play()
-end)
-btn.MouseLeave:Connect(function()
-	ts:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = _C(12, 12, 18)}):Play()
-	ts:Create(s1, TweenInfo.new(0.15), {Thickness = 1.5, Color = _C(0, 150, 220)}):Play()
-	ts:Create(arcStroke, TweenInfo.new(0.15), {Color = _C(0, 120, 200), Thickness = 1}):Play()
-	ts:Create(slash, TweenInfo.new(0.15), {BackgroundColor3 = _C(0, 180, 255)}):Play()
-	ts:Create(slashGlow, TweenInfo.new(0.15), {BackgroundTransparency = 0.75}):Play()
-	ts:Create(cmdTop, TweenInfo.new(0.15), {TextColor3 = _C(220, 232, 255)}):Play()
-	ts:Create(cmdBot, TweenInfo.new(0.15), {TextColor3 = _C(100, 120, 160)}):Play()
-end)
+local btnImg = _N("ImageLabel", btn)
+btnImg.Size = _U(1, 0, 1, 0)
+btnImg.BackgroundTransparency = 1
+btnImg.Image = "rbxassetid://126039728930663"
+btnImg.ZIndex = 10
 makeDraggable(btn)
 local cmdFrame = _N("Frame", sg)
 cmdFrame.Size = _U(0, 0, 0, 38)
