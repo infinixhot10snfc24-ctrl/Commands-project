@@ -39,53 +39,81 @@ end
 end)
 end
 local btn = _N("TextButton", sg)
-btn.Size = _U(0, 54, 0, 54)
+btn.Size = _U(0, 56, 0, 56)
 btn.Position = _U(0, 20, 0, 20)
-btn.BackgroundColor3 = _C(15, 15, 20)
+btn.BackgroundColor3 = _C(12, 12, 18)
 btn.Text = ""
 btn.AutoButtonColor = false
 btn.Active = true
 btn.ZIndex = 10
 _N("UICorner", btn).CornerRadius = UDim.new(1, 0)
 local s1 = _N("UIStroke", btn)
-s1.Color = _C(0, 170, 255)
+s1.Color = _C(0, 150, 220)
 s1.Thickness = 1.5
-local topLabel = _N("TextLabel", btn)
-topLabel.Size = _U(1, 0, 0.5, -2)
-topLabel.Position = _U(0, 0, 0, 2)
-topLabel.BackgroundTransparency = 1
-topLabel.Text = "/ /"
-topLabel.TextColor3 = _C(0, 170, 255)
-topLabel.Font = _GB
-topLabel.TextSize = 13
-topLabel.ZIndex = 11
-local divLine = _N("Frame", btn)
-divLine.Size = _U(0.65, 0, 0, 2)
-divLine.Position = _U(0.175, 0, 0.5, -1)
-divLine.BackgroundColor3 = _C(0, 150, 230)
-divLine.BorderSizePixel = 0
-divLine.ZIndex = 11
-_N("UICorner", divLine).CornerRadius = UDim.new(1, 0)
-local botLabel = _N("TextLabel", btn)
-botLabel.Size = _U(1, 0, 0.5, -2)
-botLabel.Position = _U(0, 0, 0.5, 2)
-botLabel.BackgroundTransparency = 1
-botLabel.Text = "CMD"
-botLabel.TextColor3 = _C(180, 190, 210)
-botLabel.Font = _GB
-botLabel.TextSize = 12
-botLabel.ZIndex = 11
+
+local cmdLabel = _N("TextLabel", btn)
+cmdLabel.Size = _U(1, 0, 1, 0)
+cmdLabel.BackgroundTransparency = 1
+cmdLabel.Text = "CMD"
+cmdLabel.TextColor3 = _C(210, 220, 240)
+cmdLabel.Font = _GB
+cmdLabel.TextSize = 15
+cmdLabel.ZIndex = 11
+
+local slashLine = _N("Frame", btn)
+slashLine.Size = _U(0.72, 0, 0, 2)
+slashLine.Position = _U(0.14, 0, 0.5, -1)
+slashLine.BackgroundColor3 = _C(0, 170, 255)
+slashLine.BorderSizePixel = 0
+slashLine.ZIndex = 13
+_N("UICorner", slashLine).CornerRadius = UDim.new(1, 0)
+
+local cornerDefs = {
+	{_U(0,6,0,6), _U(0,0,0,0)},
+	{_U(0,6,0,6), _U(1,-6,0,0)},
+	{_U(0,6,0,6), _U(0,0,1,-6)},
+	{_U(0,6,0,6), _U(1,-6,1,-6)},
+}
+local cornerDots = {}
+for i, cd in ipairs(cornerDefs) do
+	local dot = _N("Frame", btn)
+	dot.Size = cd[1]
+	dot.Position = cd[2]
+	dot.BackgroundColor3 = _C(0, 170, 255)
+	dot.BorderSizePixel = 0
+	dot.ZIndex = 12
+	_N("UICorner", dot).CornerRadius = UDim.new(1, 0)
+	cornerDots[i] = dot
+end
+
+local glowFrame = _N("Frame", btn)
+glowFrame.Size = _U(0.5, 0, 0.5, 0)
+glowFrame.Position = _U(0.25, 0, 0, 0)
+glowFrame.BackgroundColor3 = _C(0, 130, 255)
+glowFrame.BackgroundTransparency = 0.85
+glowFrame.BorderSizePixel = 0
+glowFrame.ZIndex = 10
+_N("UICorner", glowFrame).CornerRadius = UDim.new(1, 0)
+
 btn.MouseEnter:Connect(function()
-	ts:Create(s1, TweenInfo.new(0.15), {Thickness = 2.5, Color = _C(30, 190, 255)}):Play()
-	ts:Create(topLabel, TweenInfo.new(0.15), {TextColor3 = _C(60, 210, 255)}):Play()
-	ts:Create(divLine, TweenInfo.new(0.15), {BackgroundColor3 = _C(40, 180, 255)}):Play()
-	ts:Create(botLabel, TweenInfo.new(0.15), {TextColor3 = _C(220, 230, 255)}):Play()
+	ts:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = _C(18, 18, 28)}):Play()
+	ts:Create(s1, TweenInfo.new(0.15), {Thickness = 2.5, Color = _C(40, 200, 255)}):Play()
+	ts:Create(slashLine, TweenInfo.new(0.15), {BackgroundColor3 = _C(60, 210, 255)}):Play()
+	ts:Create(cmdLabel, TweenInfo.new(0.15), {TextColor3 = _C(240, 248, 255)}):Play()
+	ts:Create(glowFrame, TweenInfo.new(0.2), {BackgroundTransparency = 0.7}):Play()
+	for _, d in ipairs(cornerDots) do
+		ts:Create(d, TweenInfo.new(0.15), {BackgroundColor3 = _C(60, 210, 255)}):Play()
+	end
 end)
 btn.MouseLeave:Connect(function()
-	ts:Create(s1, TweenInfo.new(0.15), {Thickness = 1.5, Color = _C(0, 170, 255)}):Play()
-	ts:Create(topLabel, TweenInfo.new(0.15), {TextColor3 = _C(0, 170, 255)}):Play()
-	ts:Create(divLine, TweenInfo.new(0.15), {BackgroundColor3 = _C(0, 150, 230)}):Play()
-	ts:Create(botLabel, TweenInfo.new(0.15), {TextColor3 = _C(180, 190, 210)}):Play()
+	ts:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = _C(12, 12, 18)}):Play()
+	ts:Create(s1, TweenInfo.new(0.15), {Thickness = 1.5, Color = _C(0, 150, 220)}):Play()
+	ts:Create(slashLine, TweenInfo.new(0.15), {BackgroundColor3 = _C(0, 170, 255)}):Play()
+	ts:Create(cmdLabel, TweenInfo.new(0.15), {TextColor3 = _C(210, 220, 240)}):Play()
+	ts:Create(glowFrame, TweenInfo.new(0.2), {BackgroundTransparency = 0.85}):Play()
+	for _, d in ipairs(cornerDots) do
+		ts:Create(d, TweenInfo.new(0.15), {BackgroundColor3 = _C(0, 170, 255)}):Play()
+	end
 end)
 makeDraggable(btn)
 local cmdFrame = _N("Frame", sg)
