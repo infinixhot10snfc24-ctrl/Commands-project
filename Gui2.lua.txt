@@ -1,0 +1,189 @@
+
+repeat task.wait() until getgenv().DeltaCmds
+	and getgenv().DeltaCmds.Cmds
+	and getgenv().DeltaCmds.Pickers
+
+local ts  = game:GetService("TweenService")
+local _C  = Color3.fromRGB
+local _U  = UDim2.new
+local _N  = Instance.new
+local _GB = Enum.Font.GothamBold
+local _GS = Enum.Font.GothamSemibold
+
+local sg = _N("ScreenGui", game.CoreGui)
+sg.Name = "DeltaGui2"
+sg.ResetOnSpawn = false
+sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+sg.IgnoreGuiInset = true
+
+local pickerOpen = false
+
+local overlay = _N("Frame", sg)
+overlay.Size = _U(1,0,1,0)
+overlay.BackgroundTransparency = 1
+overlay.BackgroundColor3 = _C(0,0,0)
+overlay.ZIndex = 20
+overlay.Visible = false
+
+local pickerFrame = _N("Frame", overlay)
+pickerFrame.Size = _U(0,0,0,0)
+pickerFrame.Position = _U(0.5,0,0.42,0)
+pickerFrame.AnchorPoint = Vector2.new(0.5,0.5)
+pickerFrame.BackgroundColor3 = _C(13,13,18)
+pickerFrame.ClipsDescendants = true
+pickerFrame.ZIndex = 21
+_N("UICorner", pickerFrame).CornerRadius = UDim.new(0,16)
+local pfStroke = _N("UIStroke", pickerFrame)
+pfStroke.Color = _C(0,170,255); pfStroke.Thickness = 1.5
+local pfGrad = _N("UIGradient", pickerFrame)
+pfGrad.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, _C(20,20,30)),
+	ColorSequenceKeypoint.new(1, _C(13,13,18)),
+}
+pfGrad.Rotation = 90
+local titleLabel = _N("TextLabel", pickerFrame)
+titleLabel.Size = _U(1,0,0,36)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = ""
+titleLabel.TextColor3 = _C(255,255,255)
+titleLabel.Font = _GB
+titleLabel.TextSize = 13
+titleLabel.ZIndex = 22
+local titleGrad = _N("UIGradient", titleLabel)
+titleGrad.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, _C(255,255,255)),
+	ColorSequenceKeypoint.new(1, _C(0,170,255)),
+}
+titleGrad.Rotation = 0
+local divider = _N("Frame", pickerFrame)
+divider.Size = _U(1,-32,0,1)
+divider.Position = _U(0,16,0,36)
+divider.BackgroundColor3 = _C(40,40,55)
+divider.BorderSizePixel = 0
+divider.ZIndex = 22
+local btnContainer = _N("Frame", pickerFrame)
+btnContainer.Size = _U(1,-32,0,70)
+btnContainer.Position = _U(0,16,0,45)
+btnContainer.BackgroundTransparency = 1
+btnContainer.ZIndex = 22
+local btnLayout = _N("UIListLayout", btnContainer)
+btnLayout.FillDirection = Enum.FillDirection.Horizontal
+btnLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+btnLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+btnLayout.Padding = UDim.new(0,14)
+local subtitleLabel = _N("TextLabel", pickerFrame)
+subtitleLabel.Size = _U(1,0,0,20)
+subtitleLabel.Position = _U(0,0,1,-22)
+subtitleLabel.BackgroundTransparency = 1
+subtitleLabel.Text = ""
+subtitleLabel.TextColor3 = _C(60,60,80)
+subtitleLabel.Font = _GS
+subtitleLabel.TextSize = 10
+subtitleLabel.ZIndex = 22
+
+local function makePickerBtn(parent, label, sub, accent)
+	local btn = _N("TextButton", parent)
+	btn.Size = _U(0,148,0,62)
+	btn.BackgroundColor3 = _C(18,18,26)
+	btn.AutoButtonColor = false
+	btn.Text = ""
+	btn.ZIndex = 23
+	_N("UICorner", btn).CornerRadius = UDim.new(0,12)
+	local bs = _N("UIStroke", btn); bs.Color = accent; bs.Thickness = 1.2
+
+	local icon = _N("TextLabel", btn)
+	icon.Size = _U(1,0,0,28); icon.Position = _U(0,0,0,8)
+	icon.BackgroundTransparency = 1
+	icon.Text = label; icon.TextColor3 = _C(255,255,255)
+	icon.Font = _GB; icon.TextSize = 12; icon.ZIndex = 24
+
+	local subL = _N("TextLabel", btn)
+	subL.Size = _U(1,-16,0,18); subL.Position = _U(0,8,0,34)
+	subL.BackgroundTransparency = 1
+	subL.Text = sub; subL.TextColor3 = _C(120,120,140)
+	subL.Font = _GS; subL.TextSize = 10; subL.ZIndex = 24
+
+	local bar = _N("Frame", btn)
+	bar.Size = _U(1,-24,0,2); bar.Position = _U(0,12,1,-10)
+	bar.BackgroundColor3 = accent; bar.BorderSizePixel = 0; bar.ZIndex = 24
+	_N("UICorner", bar).CornerRadius = UDim.new(1,0)
+
+	local tw = TweenInfo.new(0.15)
+	btn.MouseEnter:Connect(function()
+		ts:Create(btn, tw, {BackgroundColor3 = _C(24,24,36)}):Play()
+		ts:Create(bs,  tw, {Thickness = 2}):Play()
+	end)
+	btn.MouseLeave:Connect(function()
+		ts:Create(btn, tw, {BackgroundColor3 = _C(18,18,26)}):Play()
+		ts:Create(bs,  tw, {Thickness = 1.2}):Play()
+	end)
+	return btn
+end
+
+local BTN_W, BTN_GAP, SIDE_PAD = 148, 14, 32
+local function calcWidth(n) return n * BTN_W + (n-1) * BTN_GAP + SIDE_PAD end
+
+local function showPicker(pickerDef, callback)
+	if pickerOpen then return end
+	pickerOpen = true
+
+	titleLabel.Text    = pickerDef.title    or ""
+	subtitleLabel.Text = pickerDef.subtitle or ""
+	for _, c in ipairs(btnContainer:GetChildren()) do
+		if c:IsA("TextButton") then c:Destroy() end
+	end
+	local items = {}
+	for _, def in ipairs(pickerDef.buttons) do
+		local b = makePickerBtn(btnContainer, def.label, def.sub, def.accent)
+		items[#items+1] = { btn = b, value = def.value }
+	end
+
+	local TARGET = _U(0, calcWidth(#pickerDef.buttons), 0, 140)
+	overlay.Visible  = true
+	pickerFrame.Size = _U(0,0,0,0)
+	ts:Create(overlay,     TweenInfo.new(0.2), {BackgroundTransparency = 0.6}):Play()
+	ts:Create(pickerFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = TARGET}):Play()
+
+	local conns = {}
+	local function pick(value)
+		if not pickerOpen then return end
+		pickerOpen = false
+		for _, c in ipairs(conns) do c:Disconnect() end
+		ts:Create(overlay,     TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+		ts:Create(pickerFrame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = _U(0,0,0,0)}):Play()
+		task.delay(0.28, function()
+			overlay.Visible = false
+			callback(value)
+		end)
+	end
+
+	for _, item in ipairs(items) do
+		local v = item.value
+		conns[#conns+1] = item.btn.MouseButton1Click:Connect(function() pick(v) end)
+	end
+end
+
+local aliasMap = {}
+for _, entry in ipairs(getgenv().DeltaCmds.Cmds) do
+	for _, alias in ipairs(entry.aliases) do
+		aliasMap[alias] = entry
+	end
+end
+
+for _, pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do
+	local cmdEntry = aliasMap[pickerDef.cmdAlias]
+	if cmdEntry then
+		cmdEntry.fn = function()
+			task.delay(0.32, function()
+				showPicker(pickerDef, pickerDef.onPick)
+			end)
+		end
+	end
+
+	if pickerDef.stopAlias and pickerDef.stopFn then
+		local stopEntry = aliasMap[pickerDef.stopAlias]
+		if stopEntry then
+			stopEntry.fn = pickerDef.stopFn
+		end
+	end
+end
