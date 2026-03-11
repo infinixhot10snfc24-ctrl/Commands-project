@@ -473,7 +473,7 @@ local displayLabel = {}
 for _, entry in ipairs(cmds) do
 local label = table.concat(entry.aliases, "/")
 for _, alias in ipairs(entry.aliases) do
-aliasLookup[alias] = entry.fn
+aliasLookup[alias] = entry
 displayLabel[alias] = label
 end
 end
@@ -557,8 +557,8 @@ h.hud.hide()
 end
 return
 end
-local fn = aliasLookup[c]
-if fn then fn(args[2], args[3], args[4]) end
+local entry = aliasLookup[c]
+if entry and entry.fn then entry.fn(args[2], args[3], args[4]) end
 end
 local cmdOpen = false
 local function closeCmd(input)
