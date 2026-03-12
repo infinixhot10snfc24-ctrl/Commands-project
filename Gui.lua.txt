@@ -228,7 +228,7 @@ stroke.Color = COLOR_ON
 stroke.Thickness = 2
 -- Row atas: nama + nilai speed
 local nameLabel = _N("TextLabel", frame)
-nameLabel.Size = _U(1, -50, 0, 44)
+nameLabel.Size = _U(1, -64, 0, 44)
 nameLabel.Position = _U(0, 10, 0, 0)
 nameLabel.BackgroundTransparency = 1
 nameLabel.Text = label
@@ -238,13 +238,13 @@ nameLabel.TextSize = 16
 nameLabel.TextXAlignment = _TX.Left
 nameLabel.TextYAlignment = Enum.TextYAlignment.Center
 local speedLabel = _N("TextLabel", frame)
-speedLabel.Size = _U(0, 32, 0, 44)
-speedLabel.Position = _U(1, -56, 0, 0)
+speedLabel.Size = _U(0, 36, 0, 44)
+speedLabel.Position = _U(1, -60, 0, 0)
 speedLabel.BackgroundTransparency = 1
 speedLabel.Text = tostring(speed)
-speedLabel.TextColor3 = _C(160, 160, 160)
+speedLabel.TextColor3 = _C(140, 140, 140)
 speedLabel.Font = _GB
-speedLabel.TextSize = 12
+speedLabel.TextSize = 11
 speedLabel.TextXAlignment = _TX.Center
 speedLabel.TextYAlignment = Enum.TextYAlignment.Center
 -- Tombol +/- kecil di kanan
@@ -292,11 +292,11 @@ local function setExpanded(state)
 expanded = state
 toggleBtn.Text = state and "-" or "+"
 if state then
-inputRow.Visible = true
 ts:Create(frame, tw, {Size = _U(0, 130, 0, 98)}):Play()
+task.delay(0.15, function() inputRow.Visible = true end)
 else
+inputRow.Visible = false
 ts:Create(frame, tw, {Size = _U(0, 130, 0, 44)}):Play()
-task.delay(0.15, function() inputRow.Visible = false end)
 end
 end
 local function setActive(state, doShow)
