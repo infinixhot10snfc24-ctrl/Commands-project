@@ -40,7 +40,7 @@ end)
 end
 local btnContainer = _N("Frame", sg)
 btnContainer.Name = "Container"
-btnContainer.Size = _U(0, 70, 0, 70)
+btnContainer.Size = _U(0, 50, 0, 50)
 btnContainer.Position = _U(0, 20, 0, 20)
 btnContainer.BackgroundTransparency = 1
 btnContainer.BorderSizePixel = 0
