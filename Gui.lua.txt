@@ -49,7 +49,7 @@ btn.ZIndex = 10
 local btnImg = _N("ImageLabel", btn)
 btnImg.Size = _U(1, 0, 1, 0)
 btnImg.BackgroundTransparency = 1
-btnImg.Image = "rbxassetid://124992158366023"
+btnImg.Image = "rbxassetid://92518007994086"
 btnImg.ScaleType = Enum.ScaleType.Fit
 btnImg.ZIndex = 10
 btn.MouseEnter:Connect(function()
