@@ -261,7 +261,7 @@ toggleBtn.ZIndex = 5
 _N("UICorner", toggleBtn).CornerRadius = UDim.new(0, 6)
 -- Input box — muncul di bawah saat expanded (dalam frame)
 local inputRow = _N("Frame", frame)
-inputRow.Size = _U(1, -16, 0, 32)
+inputRow.Size = _U(1, -16, 0, 38)
 inputRow.Position = _U(0, 8, 0, 50)
 inputRow.BackgroundColor3 = _C(32, 32, 32)
 inputRow.BorderSizePixel = 0
@@ -275,7 +275,7 @@ inputBox.BackgroundTransparency = 1
 inputBox.Text = tostring(speed)
 inputBox.TextColor3 = _C(230, 230, 230)
 inputBox.Font = _GB
-inputBox.TextSize = 13
+inputBox.TextSize = 15
 inputBox.TextXAlignment = _TX.Center
 inputBox.PlaceholderText = "speed"
 -- Draggable dari nama
@@ -293,9 +293,9 @@ expanded = state
 toggleBtn.Text = state and "-" or "+"
 if state then
 inputRow.Visible = true
-ts:Create(frame, tw, {Size = _U(0, 110, 0, 90)}):Play()
+ts:Create(frame, tw, {Size = _U(0, 130, 0, 98)}):Play()
 else
-ts:Create(frame, tw, {Size = _U(0, 110, 0, 44)}):Play()
+ts:Create(frame, tw, {Size = _U(0, 130, 0, 44)}):Play()
 task.delay(0.15, function() inputRow.Visible = false end)
 end
 end
