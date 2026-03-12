@@ -32,20 +32,34 @@ getgenv().JumpSettings = {
 	Value = 50,
 	Original = 50
 }
-local oldIndex
-oldIndex = hookmetamethod(game, "__newindex", newcclosure(function(t, k, v)
-	if not checkcaller() then
-		if typeof(t) == "Instance" and t:IsA("Humanoid") then
-			if k == "WalkSpeed" and getgenv().SpeedSettings.Locked then
-				return oldIndex(t, k, getgenv().SpeedSettings.Value)
-			end
-			if k == "JumpPower" and getgenv().JumpSettings.Locked then
-				return oldIndex(t, k, getgenv().JumpSettings.Value)
+local oldIndex = nil
+local hookActive = false
+local function ensureHook()
+	if hookActive then return end
+	hookActive = true
+	oldIndex = hookmetamethod(game, "__newindex", newcclosure(function(t, k, v)
+		if not checkcaller() then
+			if typeof(t) == "Instance" and t:IsA("Humanoid") then
+				if k == "WalkSpeed" and getgenv().SpeedSettings.Locked then
+					return oldIndex(t, k, getgenv().SpeedSettings.Value)
+				end
+				if k == "JumpPower" and getgenv().JumpSettings.Locked then
+					return oldIndex(t, k, getgenv().JumpSettings.Value)
+				end
 			end
 		end
+		return oldIndex(t, k, v)
+	end))
+end
+local function tryRemoveHook()
+	if not getgenv().SpeedSettings.Locked and not getgenv().JumpSettings.Locked then
+		if hookActive and oldIndex then
+			hookmetamethod(game, "__newindex", oldIndex)
+			oldIndex = nil
+			hookActive = false
+		end
 	end
-	return oldIndex(t, k, v)
-end))
+end
 local function resolveTargets(name)
 	local others = {}
 	for _, v in ipairs(game.Players:GetPlayers()) do
@@ -129,6 +143,7 @@ local function stopNoclip()
 end
 local lockwsCharConn = nil
 local function startLws(spd)
+	ensureHook()
 	getgenv().SpeedSettings.Value = spd
 	getgenv().SpeedSettings.Locked = true
 	local function apply(char)
@@ -147,6 +162,7 @@ end
 local function stopLws()
 	getgenv().SpeedSettings.Locked = false
 	if lockwsCharConn then lockwsCharConn:Disconnect(); lockwsCharConn = nil end
+	tryRemoveHook()
 end
 local function startLoopws(spd)
 	getgenv().SpeedSettings.Locked = false
@@ -168,6 +184,7 @@ local function setWs(spd)
 end
 local lockjpCharConn = nil
 local function startLjp(pw)
+	ensureHook()
 	getgenv().JumpSettings.Value = pw
 	getgenv().JumpSettings.Locked = true
 	getgenv().JumpSettings.OriginalUseJumpPower = false
@@ -185,6 +202,7 @@ end
 local function stopLjp()
 	getgenv().JumpSettings.Locked = false
 	if lockjpCharConn then lockjpCharConn:Disconnect(); lockjpCharConn = nil end
+	tryRemoveHook()
 	local char = p.Character
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
 	if hum then hum.UseJumpPower = getgenv().JumpSettings.OriginalUseJumpPower or false end
