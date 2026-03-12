@@ -55,6 +55,24 @@ titleGrad.Color = ColorSequence.new{
 	ColorSequenceKeypoint.new(1, _C(0,170,255)),
 }
 titleGrad.Rotation = 0
+local closeBtn = _N("TextButton", pickerFrame)
+closeBtn.Size = _U(0,28,0,28)
+closeBtn.Position = _U(1,-36,0,6)
+closeBtn.BackgroundColor3 = _C(40,20,20)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = _C(255,80,80)
+closeBtn.Font = _GB
+closeBtn.TextSize = 14
+closeBtn.AutoButtonColor = false
+closeBtn.ZIndex = 25
+_N("UICorner", closeBtn).CornerRadius = UDim.new(0,8)
+local closeTw = TweenInfo.new(0.12)
+closeBtn.MouseEnter:Connect(function()
+	ts:Create(closeBtn, closeTw, {BackgroundColor3 = _C(80,20,20)}):Play()
+end)
+closeBtn.MouseLeave:Connect(function()
+	ts:Create(closeBtn, closeTw, {BackgroundColor3 = _C(40,20,20)}):Play()
+end)
 local divider = _N("Frame", pickerFrame)
 divider.Size = _U(1,-32,0,1)
 divider.Position = _U(0,16,0,36)
@@ -157,6 +175,7 @@ local function showPicker(pickerDef, callback)
 		end)
 	end
 
+	conns[#conns+1] = closeBtn.MouseButton1Click:Connect(function() pick(nil) end)
 	for _, item in ipairs(items) do
 		local v = item.value
 		conns[#conns+1] = item.btn.MouseButton1Click:Connect(function() pick(v) end)
@@ -175,7 +194,11 @@ for _, pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do
 	if cmdEntry then
 		cmdEntry.fn = function()
 			task.delay(0.32, function()
-				showPicker(pickerDef, pickerDef.onPick)
+				showPicker(pickerDef, function(value)
+					if value ~= nil then
+						pickerDef.onPick(value)
+					end
+				end)
 			end)
 		end
 	end
