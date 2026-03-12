@@ -42,7 +42,7 @@ pfGrad.Color = ColorSequence.new{
 }
 pfGrad.Rotation = 90
 local titleLabel = _N("TextLabel", pickerFrame)
-titleLabel.Size = _U(1,0,0,36)
+titleLabel.Size = _U(1,-40,0,36)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = ""
 titleLabel.TextColor3 = _C(255,255,255)
@@ -56,22 +56,23 @@ titleGrad.Color = ColorSequence.new{
 }
 titleGrad.Rotation = 0
 local closeBtn = _N("TextButton", pickerFrame)
-closeBtn.Size = _U(0,28,0,28)
-closeBtn.Position = _U(1,-36,0,6)
-closeBtn.BackgroundColor3 = _C(40,20,20)
+closeBtn.Size = _U(0,26,0,26)
+closeBtn.Position = _U(1,-32,0,5)
+closeBtn.AnchorPoint = Vector2.new(1,0)
+closeBtn.BackgroundColor3 = _C(50,15,15)
 closeBtn.Text = "✕"
 closeBtn.TextColor3 = _C(255,80,80)
 closeBtn.Font = _GB
-closeBtn.TextSize = 14
+closeBtn.TextSize = 13
 closeBtn.AutoButtonColor = false
-closeBtn.ZIndex = 25
+closeBtn.ZIndex = 26
 _N("UICorner", closeBtn).CornerRadius = UDim.new(0,8)
 local closeTw = TweenInfo.new(0.12)
 closeBtn.MouseEnter:Connect(function()
-	ts:Create(closeBtn, closeTw, {BackgroundColor3 = _C(80,20,20)}):Play()
+	ts:Create(closeBtn, closeTw, {BackgroundColor3 = _C(90,20,20)}):Play()
 end)
 closeBtn.MouseLeave:Connect(function()
-	ts:Create(closeBtn, closeTw, {BackgroundColor3 = _C(40,20,20)}):Play()
+	ts:Create(closeBtn, closeTw, {BackgroundColor3 = _C(50,15,15)}):Play()
 end)
 local divider = _N("Frame", pickerFrame)
 divider.Size = _U(1,-32,0,1)
