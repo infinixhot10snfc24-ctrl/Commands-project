@@ -191,6 +191,12 @@ local function startAntifling()
 	local function applyPart(part)
 		if not antiflingOriginal[part] then
 			antiflingOriginal[part] = part.CanCollide
+			-- Cleanup otomatis waktu part dihancurkan
+			part.AncestryChanged:Connect(function()
+				if not part.Parent then
+					antiflingOriginal[part] = nil
+				end
+			end)
 		end
 		part.CanCollide = false
 	end
