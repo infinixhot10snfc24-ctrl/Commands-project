@@ -38,28 +38,28 @@ update(input)
 end
 end)
 end
-local btn = _N("TextButton", sg)
-btn.Size = _U(0, 60, 0, 60)
-btn.Position = _U(0, 20, 0, 20)
+local btnContainer = _N("Frame", sg)
+btnContainer.Name = "Container"
+btnContainer.Size = _U(0, 60, 0, 60)
+btnContainer.Position = _U(0, 20, 0, 20)
+btnContainer.BackgroundTransparency = 1
+btnContainer.ZIndex = 10
+local btn = _N("ImageButton", btnContainer)
+btn.Name = "Button"
+btn.Size = _U(1, 0, 1, 0)
 btn.BackgroundTransparency = 1
-btn.Text = ""
+btn.Image = "rbxassetid://92518007994086"
+btn.ScaleType = Enum.ScaleType.Fit
 btn.AutoButtonColor = false
 btn.Active = true
 btn.ZIndex = 10
-local btnImg = _N("ImageLabel", btn)
-btnImg.Size = _U(1, 0, 1, 0)
-btnImg.BackgroundTransparency = 1
-btnImg.Image = "rbxassetid://92518007994086"
-btnImg.ScaleType = Enum.ScaleType.Fit
-btnImg.ZIndex = 10
-_N("UICorner", btnImg).CornerRadius = UDim.new(1, 0)
 btn.MouseEnter:Connect(function()
-	ts:Create(btnImg, TweenInfo.new(0.15), {ImageTransparency = 0.2}):Play()
+	ts:Create(btn, TweenInfo.new(0.15), {ImageTransparency = 0.2}):Play()
 end)
 btn.MouseLeave:Connect(function()
-	ts:Create(btnImg, TweenInfo.new(0.15), {ImageTransparency = 0}):Play()
+	ts:Create(btn, TweenInfo.new(0.15), {ImageTransparency = 0}):Play()
 end)
-makeDraggable(btn)
+makeDraggable(btnContainer)
 local cmdFrame = _N("Frame", sg)
 cmdFrame.Size = _U(0, 0, 0, 38)
 cmdFrame.Position = _U(0.5, 0, 0.5, 0)
@@ -576,14 +576,14 @@ local function closeCmd(input)
 	ts:Create(cmdFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = _U(0, 0, 0, 38)}):Play()
 	task.delay(0.25, function()
 		cmdFrame.Visible = false
-		btn.Visible = true
+		btnContainer.Visible = true
 	end)
 	if input and input ~= "" then runCommand(input) end
 end
 btn.MouseButton1Click:Connect(function()
 	if cmdOpen then return end
 	cmdOpen = true
-	btn.Visible = false
+	btnContainer.Visible = false
 	cmdFrame.Visible = true
 	cmdFrame.Size = _U(0, 0, 0, 38)
 	ts:Create(cmdFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = _U(0, 260, 0, 38)}):Play()
