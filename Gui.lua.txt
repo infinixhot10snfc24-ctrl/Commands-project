@@ -10,31 +10,28 @@ sg.ResetOnSpawn = false
 sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 local function makeDraggable(frame, handle)
 handle = handle or frame
-local dragging, dragStart, startPos
-local function update(input)
+local dragInput, dragStart, startPos
+handle.InputBegan:Connect(function(input)
+if input.UserInputType == _UI.MouseButton1
+or input.UserInputType == _UI.Touch then
+dragInput = input
+dragStart = input.Position
+startPos = frame.Position
+input.Changed:Connect(function()
+if input.UserInputState == Enum.UserInputState.End then
+if dragInput == input then dragInput = nil end
+end
+end)
+end
+end)
+handle.InputChanged:Connect(function(input)
+-- Hanya proses input yang sama dengan yang mulai drag
+if dragInput and input == dragInput then
 local delta = input.Position - dragStart
 frame.Position = _U(
 startPos.X.Scale, startPos.X.Offset + delta.X,
 startPos.Y.Scale, startPos.Y.Offset + delta.Y
 )
-end
-handle.InputBegan:Connect(function(input)
-if input.UserInputType == _UI.MouseButton1
-or input.UserInputType == _UI.Touch then
-dragging = true
-dragStart = input.Position
-startPos = frame.Position
-input.Changed:Connect(function()
-if input.UserInputState == Enum.UserInputState.End then
-dragging = false
-end
-end)
-end
-end)
-uis.InputChanged:Connect(function(input)
-if dragging and (input.UserInputType == _UI.MouseMovement
-or input.UserInputType == _UI.Touch) then
-update(input)
 end
 end)
 end
@@ -282,7 +279,7 @@ inputBox.TextSize = 13
 inputBox.TextXAlignment = _TX.Center
 inputBox.PlaceholderText = "speed"
 -- Draggable dari nama
-makeDraggable(frame, nameLabel)
+-- drag setup below
 local function applySpeed(val)
 local n = tonumber(val)
 if not n or n < 1 then return end
@@ -325,6 +322,7 @@ clickArea.Position = _U(0, 0, 0, 0)
 clickArea.BackgroundTransparency = 1
 clickArea.Text = ""
 clickArea.ZIndex = 2
+makeDraggable(frame, clickArea)
 clickArea.MouseButton1Click:Connect(function()
 if _toggleHit then _toggleHit = false; return end
 active = not active
@@ -395,6 +393,7 @@ clickArea.Position = _U(0, 4, 0, 4)
 clickArea.BackgroundTransparency = 1
 clickArea.Text = ""
 clickArea.ZIndex = 2
+makeDraggable(frame, clickArea)
 clickArea.MouseButton1Click:Connect(function()
 if _toggleHit then _toggleHit = false; return end
 active = not active
