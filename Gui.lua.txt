@@ -216,140 +216,117 @@ local active   = false
 local speed    = defaultSpd
 local expanded = false
 local tw       = TweenInfo.new(0.15, Enum.EasingStyle.Quad)
+-- Frame utama — collapsed: 110x44, expanded: 110x90
 local frame = _N("Frame", sg)
-frame.Size = _U(0, 100, 0, 70)
-frame.Position = _U(1, -120, 0, 20 + yOff)
+frame.Size = _U(0, 110, 0, 44)
+frame.Position = _U(1, -126, 0, 20 + yOff)
 frame.BackgroundColor3 = _C(22, 22, 22)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Visible = false
+frame.ClipsDescendants = true
 _N("UICorner", frame).CornerRadius = UDim.new(0, 12)
 local stroke = _N("UIStroke", frame)
 stroke.Color = COLOR_ON
 stroke.Thickness = 2
-local E = 14
-local edgeDefs = {
-{_U(1,0,0,E), _U(0,0,0,0)},
-{_U(1,0,0,E), _U(0,0,1,-E)},
-{_U(0,E,1,0), _U(0,0,0,0)},
-{_U(0,E,1,0), _U(1,-E,0,0)},
-}
-for _, ed in ipairs(edgeDefs) do
-local strip = _N("TextButton", frame)
-strip.Size = ed[1]
-strip.Position = ed[2]
-strip.BackgroundTransparency = 1
-strip.Text = ""
-strip.AutoButtonColor = false
-strip.ZIndex = 3
-makeDraggable(frame, strip)
-end
-local speedLabel = _N("TextLabel", frame)
-speedLabel.Size = _U(1, -8, 0, 18)
-speedLabel.Position = _U(0, 4, 0, 4)
-speedLabel.BackgroundTransparency = 1
-speedLabel.Text = tostring(speed)
-speedLabel.TextColor3 = _C(180, 180, 180)
-speedLabel.Font = _GB
-speedLabel.TextSize = 13
-speedLabel.TextXAlignment = _TX.Right
+-- Row atas: nama + nilai speed
 local nameLabel = _N("TextLabel", frame)
-nameLabel.Size = _U(1, -36, 1, 0)
+nameLabel.Size = _U(1, -50, 0, 44)
 nameLabel.Position = _U(0, 10, 0, 0)
 nameLabel.BackgroundTransparency = 1
 nameLabel.Text = label
 nameLabel.TextColor3 = COLOR_ON
 nameLabel.Font = _GB
-nameLabel.TextSize = 24
+nameLabel.TextSize = 20
 nameLabel.TextXAlignment = _TX.Left
-local speedBottom = _N("TextLabel", frame)
-speedBottom.Size = _U(1, 0, 0, 18)
-speedBottom.Position = _U(0, 0, 1, -20)
-speedBottom.BackgroundTransparency = 1
-speedBottom.Text = tostring(speed)
-speedBottom.TextColor3 = _C(180, 180, 180)
-speedBottom.Font = _GB
-speedBottom.TextSize = 13
-speedBottom.TextXAlignment = _TX.Center
-makeDraggable(frame, speedBottom)
+nameLabel.TextYAlignment = Enum.TextYAlignment.Center
+local speedLabel = _N("TextLabel", frame)
+speedLabel.Size = _U(0, 32, 0, 44)
+speedLabel.Position = _U(1, -78, 0, 0)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = tostring(speed)
+speedLabel.TextColor3 = _C(160, 160, 160)
+speedLabel.Font = _GB
+speedLabel.TextSize = 12
+speedLabel.TextXAlignment = _TX.Center
+speedLabel.TextYAlignment = Enum.TextYAlignment.Center
+-- Tombol +/- kecil di kanan
 local toggleBtn = _N("TextButton", frame)
-toggleBtn.Size = _U(0, 33, 0, 33)
-toggleBtn.Position = _U(1, -26, 0, 4)
+toggleBtn.Size = _U(0, 22, 0, 22)
+toggleBtn.Position = _U(1, -28, 0, 11)
 toggleBtn.BackgroundColor3 = _C(45, 45, 45)
 toggleBtn.BorderSizePixel = 0
 toggleBtn.Text = "+"
 toggleBtn.TextColor3 = _C(200, 200, 200)
 toggleBtn.Font = _GB
-toggleBtn.TextSize = 14
+toggleBtn.TextSize = 13
+toggleBtn.ZIndex = 5
 _N("UICorner", toggleBtn).CornerRadius = UDim.new(0, 6)
-local inputFrame = _N("Frame", sg)
-inputFrame.Size = _U(0, 100, 0, 36)
-inputFrame.BackgroundColor3 = _C(22, 22, 22)
-inputFrame.BorderSizePixel = 0
-inputFrame.Visible = false
-inputFrame.Active = true
-_N("UICorner", inputFrame).CornerRadius = UDim.new(0, 10)
-_N("UIStroke", inputFrame).Color = _C(60, 60, 60)
-makeDraggable(inputFrame)
-local inputBox = _N("TextBox", inputFrame)
-inputBox.Size = _U(1, -16, 1, -10)
-inputBox.Position = _U(0, 8, 0, 5)
-inputBox.BackgroundColor3 = _C(38, 38, 38)
-inputBox.BorderSizePixel = 0
+-- Input box — muncul di bawah saat expanded (dalam frame)
+local inputRow = _N("Frame", frame)
+inputRow.Size = _U(1, -16, 0, 32)
+inputRow.Position = _U(0, 8, 0, 50)
+inputRow.BackgroundColor3 = _C(32, 32, 32)
+inputRow.BorderSizePixel = 0
+inputRow.Visible = false
+_N("UICorner", inputRow).CornerRadius = UDim.new(0, 8)
+_N("UIStroke", inputRow).Color = _C(60, 60, 80)
+local inputBox = _N("TextBox", inputRow)
+inputBox.Size = _U(1, -16, 1, -8)
+inputBox.Position = _U(0, 8, 0, 4)
+inputBox.BackgroundTransparency = 1
 inputBox.Text = tostring(speed)
 inputBox.TextColor3 = _C(230, 230, 230)
 inputBox.Font = _GB
-inputBox.TextSize = 14
+inputBox.TextSize = 13
 inputBox.TextXAlignment = _TX.Center
 inputBox.PlaceholderText = "speed"
-_N("UICorner", inputBox).CornerRadius = UDim.new(0, 6)
-local function updateSpeedLabels()
-speedLabel.Text = tostring(speed)
-speedBottom.Text = tostring(speed)
-inputBox.Text = tostring(speed)
-end
-local function setExpanded(state)
-expanded = state
-toggleBtn.Text = state and "-" or "+"
-if state then
-local absPos = frame.AbsolutePosition
-local absSize = frame.AbsoluteSize
-inputFrame.Position = _U(0, absPos.X, 0, absPos.Y + absSize.Y + 6)
-inputFrame.Visible = true
-else
-inputFrame.Visible = false
-end
-end
+-- Draggable dari nama
+makeDraggable(frame, nameLabel)
 local function applySpeed(val)
 local n = tonumber(val)
 if not n or n < 1 then return end
 speed = n
 speedLabel.Text = tostring(speed)
-speedBottom.Text = tostring(speed)
+inputBox.Text = tostring(speed)
 if active then startFn(speed) end
+end
+local function setExpanded(state)
+expanded = state
+toggleBtn.Text = state and "-" or "+"
+if state then
+inputRow.Visible = true
+ts:Create(frame, tw, {Size = _U(0, 110, 0, 90)}):Play()
+else
+ts:Create(frame, tw, {Size = _U(0, 110, 0, 44)}):Play()
+task.delay(0.15, function() inputRow.Visible = false end)
+end
 end
 local function setActive(state, doShow)
 active = state
 if doShow then frame.Visible = true end
 if not state then
 frame.Visible = false
-inputFrame.Visible = false
-if expanded then expanded = false; toggleBtn.Text = "+" end
+if expanded then setExpanded(false) end
 stopFn()
 return
 end
 startFn(speed)
 end
+local _toggleHit = false
 toggleBtn.MouseButton1Click:Connect(function()
+_toggleHit = true
 setExpanded(not expanded)
 end)
+
 local clickArea = _N("TextButton", frame)
-clickArea.Size = _U(1, -37, 1, -8)
-clickArea.Position = _U(0, 4, 0, 4)
+clickArea.Size = _U(1, -36, 0, 44)
+clickArea.Position = _U(0, 0, 0, 0)
 clickArea.BackgroundTransparency = 1
 clickArea.Text = ""
 clickArea.ZIndex = 2
 clickArea.MouseButton1Click:Connect(function()
+if _toggleHit then _toggleHit = false; return end
 active = not active
 local col = active and COLOR_ON or COLOR_OFF
 ts:Create(stroke, tw, {Color = col}):Play()
@@ -365,7 +342,9 @@ end
 end)
 return {
 show = function(spd)
-if spd then speed = math.max(1, spd); updateSpeedLabels() end
+if spd then speed = math.max(1, spd)
+speedLabel.Text = tostring(speed)
+inputBox.Text = tostring(speed) end
 setActive(true, true)
 end,
 hide = function() setActive(false, false) end,
@@ -417,6 +396,7 @@ clickArea.BackgroundTransparency = 1
 clickArea.Text = ""
 clickArea.ZIndex = 2
 clickArea.MouseButton1Click:Connect(function()
+if _toggleHit then _toggleHit = false; return end
 active = not active
 local col = active and COLOR_ON or COLOR_OFF
 ts:Create(stroke, tw, {Color = col}):Play()
