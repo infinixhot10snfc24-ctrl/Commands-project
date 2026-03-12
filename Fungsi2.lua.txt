@@ -165,15 +165,23 @@ local function startFreecam(spd)
 end
 local origFog = lighting.FogEnd
 local nofogActive = false
+local nofogConn = nil
 local function startNofog()
 	origFog = lighting.FogEnd
-	lighting.FogEnd = 1e6
 	nofogActive = true
+	lighting.FogEnd = 1e9
+	if nofogConn then nofogConn:Disconnect() end
+	nofogConn = lighting:GetPropertyChangedSignal("FogEnd"):Connect(function()
+		if nofogActive and lighting.FogEnd < 1e9 then
+			lighting.FogEnd = 1e9
+		end
+	end)
 end
 local function stopNofog()
 	if not nofogActive then return end
-	lighting.FogEnd = origFog
 	nofogActive = false
+	if nofogConn then nofogConn:Disconnect(); nofogConn = nil end
+	lighting.FogEnd = origFog
 end
 local antiflingConns = {}
 local antiflingOriginal = {}
@@ -240,6 +248,80 @@ getgenv().DeltaCmds.startFreecam = startFreecam
 getgenv().DeltaCmds.stopFreecam  = stopFreecam
 getgenv().DeltaCmds.startFreeze  = startFreeze
 getgenv().DeltaCmds.stopFreeze   = stopFreeze
+
+-- Anti Kick
+local antikickActive = false
+local function startAntikick()
+	if antikickActive then return end
+	antikickActive = true
+	local m = getrawmetatable(game)
+	setreadonly(m, false)
+	local o = m.__namecall
+	m.__namecall = newcclosure(function(s, ...)
+		if tostring(getnamecallmethod()) == "Kick" then
+			task.wait(9e9)
+			return
+		end
+		return o(s, ...)
+	end)
+	setreadonly(m, true)
+end
+
+-- Serverhop (server random)
+local function serverhop()
+	local tps = game:GetService("TeleportService")
+	local hs = game:GetService("HttpService")
+	local placeId = game.PlaceId
+	local currentJobId = game.JobId
+	local servers = {}
+	local cursor = ""
+	repeat
+		local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
+		if cursor ~= "" then url = url .. "&cursor=" .. cursor end
+		local ok, res = pcall(function() return game:HttpGet(url) end)
+		if not ok then break end
+		local data = hs:JSONDecode(res)
+		if not data or not data.data then break end
+		for _, s in ipairs(data.data) do
+			if s.id ~= currentJobId and s.playing < s.maxPlayers then
+				servers[#servers+1] = s
+			end
+		end
+		cursor = data.nextPageCursor or ""
+	until cursor == ""
+	if #servers == 0 then return end
+	local pick = servers[math.random(#servers)]
+	tps:TeleportToPlaceInstance(placeId, pick.id, p)
+end
+
+-- Smallserverhop (server paling sedikit playernya)
+local function smallserverhop()
+	local tps = game:GetService("TeleportService")
+	local hs = game:GetService("HttpService")
+	local placeId = game.PlaceId
+	local currentJobId = game.JobId
+	local cursor = ""
+	local best = nil
+	repeat
+		local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Asc&limit=100"
+		if cursor ~= "" then url = url .. "&cursor=" .. cursor end
+		local ok, res = pcall(function() return game:HttpGet(url) end)
+		if not ok then break end
+		local data = hs:JSONDecode(res)
+		if not data or not data.data then break end
+		for _, s in ipairs(data.data) do
+			if s.id ~= currentJobId and s.playing < s.maxPlayers then
+				if not best or s.playing < best.playing then
+					best = s
+				end
+			end
+		end
+		cursor = data.nextPageCursor or ""
+	until cursor == "" or best and best.playing <= 1
+	if not best then return end
+	tps:TeleportToPlaceInstance(placeId, best.id, p)
+end
+
 local newCmds = {
 	{ aliases = {"view", "spectate"},     args = "[player]", fn = function(v) if v then startView(v) else stopView() end end },
 	{ aliases = {"unview", "unspectate"}, fn = function()  stopView() end },
@@ -255,6 +337,9 @@ local newCmds = {
 	  hud = "toggle", hudStart = "startFreeze", hudStop = "stopFreeze",
 	  hudOn = {"freeze"}, hudOff = {"unfreeze"} },
 	{ aliases = {"unfreeze"},             fn = function()  stopFreeze() end },
+	{ aliases = {"antikick"},             fn = function()  startAntikick() end },
+	{ aliases = {"serverhop", "shop"},    fn = function()  task.spawn(serverhop) end },
+	{ aliases = {"smallserverhop", "sshop"}, fn = function() task.spawn(smallserverhop) end },
 }
 local cmds = getgenv().DeltaCmds.Cmds
 local insertAt = #cmds
