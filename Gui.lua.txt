@@ -50,7 +50,7 @@ btn.Name = "Button"
 btn.Size = _U(1, 0, 1, 0)
 btn.BackgroundTransparency = 1
 btn.BorderSizePixel = 0
-btn.Image = "rbxassetid://117295107635637"
+btn.Image = "rbxassetid://115634411771134"
 btn.ImageTransparency = 0
 btn.ScaleType = Enum.ScaleType.Fit
 btn.AutoButtonColor = false
@@ -62,7 +62,7 @@ end)
 btn.MouseLeave:Connect(function()
 	ts:Create(btn, TweenInfo.new(0.15), {ImageTransparency = 0}):Play()
 end)
-makeDraggable(btnContainer)
+makeDraggable(btnContainer, btn)
 local cmdFrame = _N("Frame", sg)
 cmdFrame.Size = _U(0, 0, 0, 38)
 cmdFrame.Position = _U(0.5, 0, 0.5, 0)
