@@ -52,6 +52,7 @@ btnImg.BackgroundTransparency = 1
 btnImg.Image = "rbxassetid://92518007994086"
 btnImg.ScaleType = Enum.ScaleType.Fit
 btnImg.ZIndex = 10
+_N("UICorner", btnImg).CornerRadius = UDim.new(1, 0)
 btn.MouseEnter:Connect(function()
 	ts:Create(btnImg, TweenInfo.new(0.15), {ImageTransparency = 0.2}):Play()
 end)
