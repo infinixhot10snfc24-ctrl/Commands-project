@@ -7,6 +7,7 @@ local lighting = game:GetService("Lighting")
 local cam = workspace.CurrentCamera
 local ctrls = require(p.PlayerScripts:WaitForChild("PlayerModule")):GetControls()
 local isFlying = false
+local flyCharConn = nil
 local flyConn, noclipConn, ijConn
 local bv, bg, spinBody
 local spinConn, spinSpeed
@@ -73,7 +74,6 @@ local function stopFly()
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
 	if hum then hum.PlatformStand = false end
 end
-local flyCharConn = nil
 local function setupFlyChar(char)
 	if bv then bv:Destroy(); bv = nil end
 	if bg then bg:Destroy(); bg = nil end
@@ -152,7 +152,7 @@ local function startLoopws(spd)
 	getgenv().SpeedSettings.Locked = false
 	if lockwsCharConn then lockwsCharConn:Disconnect(); lockwsCharConn = nil end
 	if loopwsConn then loopwsConn:Disconnect(); loopwsConn = nil end
-	loopwsConn = rs.RenderStepped:Connect(function()
+	loopwsConn = rs.Heartbeat:Connect(function()
 		local char = p.Character
 		local hum = char and char:FindFirstChildOfClass("Humanoid")
 		if hum and hum.WalkSpeed ~= spd then hum.WalkSpeed = spd end
@@ -320,15 +320,17 @@ local function startEsp(name)
 	end)
 end
 local function freeze(char, duration)
-	local fin = os.clock() + duration
-	local conn
-	conn = rs.Heartbeat:Connect(function()
-		if os.clock() >= fin then conn:Disconnect(); return end
-		for _, v in ipairs(char:GetDescendants()) do
-			if v:IsA("BasePart") then
-				v.Velocity = Vector3.zero
-				v.RotVelocity = Vector3.zero
-			end
+	-- Anchor parts sekali, lepas setelah durasi — lebih ringan dari loop tiap frame
+	local parts = {}
+	for _, v in ipairs(char:GetDescendants()) do
+		if v:IsA("BasePart") and not v.Anchored then
+			v.Anchored = true
+			parts[#parts+1] = v
+		end
+	end
+	task.delay(duration, function()
+		for _, v in ipairs(parts) do
+			if v and v.Parent then v.Anchored = false end
 		end
 	end)
 end
