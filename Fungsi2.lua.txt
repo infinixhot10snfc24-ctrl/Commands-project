@@ -459,6 +459,62 @@ local function startAl(fov)
 	end)
 end
 
+
+local function startNoEffect()
+	local w,l=workspace,game:GetService("Lighting")
+	l.GlobalShadows=false
+	local d={ParticleEmitter=true,Fire=true,Smoke=true,Sparkles=true,Trail=true,Beam=true,BlurEffect=true,BloomEffect=true,ColorCorrectionEffect=true,SunRaysEffect=true,DepthOfFieldEffect=true,PointLight=true,SpotLight=true,SurfaceLight=true,Clouds=true,Explosion=true}
+	local function f(o)
+		local c=o.ClassName
+		if d[c]then
+			local function k()pcall(function()o.Enabled=false
+				if c=="ParticleEmitter"then o.Transparency=NumberSequence.new(1)o:Clear()
+				elseif c=="Trail"or c=="Beam"then o.Transparency=NumberSequence.new(1)o.Width0=0 o.Width1=0
+				elseif c=="Fire"or c=="Smoke"or c=="Sparkles"then o.Size=0
+				elseif o:IsA("Light")then o.Brightness=0 o.Range=0
+				elseif c=="Explosion"then o.BlastRadius=0 o.BlastPressure=0
+				elseif c:find("Effect")then pcall(function()o.Size=0 end)pcall(function()o.Intensity=0 end)
+				elseif c=="Clouds"then o.Cover=0 o.Density=0
+				end
+			end)end
+			k()
+			pcall(function()o:GetPropertyChangedSignal("Enabled"):Connect(function()if o.Enabled then k()end end)end)
+		elseif c=="Atmosphere"then
+			pcall(function()o.Haze=0 o.Density=0 o.Glare=0 end)
+		elseif o:IsA("BasePart")then
+			pcall(function()o.CastShadow=false o.Reflectance=0 end)
+		end
+	end
+	for _,o in pairs(w:GetDescendants())do f(o)end
+	for _,o in pairs(l:GetDescendants())do f(o)end
+	w.DescendantAdded:Connect(f)
+	l.DescendantAdded:Connect(f)
+end
+
+local function startAvis()
+	local pl=game:GetService("Players")
+	local b={Head=1,Torso=1,["Left Arm"]=1,["Right Arm"]=1,["Left Leg"]=1,["Right Leg"]=1,UpperTorso=1,LowerTorso=1,RightUpperArm=1,RightLowerArm=1,RightHand=1,LeftUpperArm=1,LeftLowerArm=1,LeftHand=1,RightUpperLeg=1,RightLowerLeg=1,RightFoot=1,LeftUpperLeg=1,LeftLowerLeg=1,LeftFoot=1}
+	local function v(o)
+		if o.Name=="HumanoidRootPart"then return end
+		if(o:IsA("BasePart")and(b[o.Name]or(o.Parent and o.Parent:IsA("Accessory"))))or o:IsA("Decal")then
+			pcall(function()
+				o.Transparency=0 o.LocalTransparencyModifier=0
+				o:GetPropertyChangedSignal("Transparency"):Connect(function()o.Transparency=0 end)
+				o:GetPropertyChangedSignal("LocalTransparencyModifier"):Connect(function()o.LocalTransparencyModifier=0 end)
+			end)
+		end
+	end
+	local function c(h)
+		for _,o in pairs(h:GetDescendants())do v(o)end
+		h.DescendantAdded:Connect(v)
+	end
+	for _,player in pairs(pl:GetPlayers())do
+		if player.Character then c(player.Character)end
+		player.CharacterAdded:Connect(c)
+	end
+	pl.PlayerAdded:Connect(function(player)player.CharacterAdded:Connect(c)end)
+end
+
 local newCmds = {
 	{ aliases = {"view", "spectate"},     args = "[player]", fn = function(v) if v then startVw(v) else stopVw() end end },
 	{ aliases = {"unview", "unspectate"}, fn = function()  stopVw() end },
@@ -480,6 +536,8 @@ local newCmds = {
 	{ aliases = {"smallserverhop", "sshop"}, fn = function() task.spawn(sshop_fn) end },
 	{ aliases = {"aimlock"},              args = "[fov]", fn = function(v) startAl(tonumber(v)) end },
 	{ aliases = {"unaimlock"},            fn = function()  stopAl() end },
+	{ aliases = {"noeffect"},             fn = function()  startNoEffect() end },
+	{ aliases = {"antiinvisible","antiinvis","avis"}, args = "[client]", fn = function()  startAvis() end },
 }
 local cmds = getgenv().DeltaCmds.Cmds
 local insertAt = #cmds
