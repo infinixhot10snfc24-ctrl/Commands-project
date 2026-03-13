@@ -328,11 +328,10 @@ local function sshop_fn()
 end
 
 local alGui = nil
-local alConn = nil
 local alHB = nil
 
 local function stopAl()
-	if alConn then R:UnbindFromRenderStep("DeltaAimlock"); alConn = nil end
+	R:UnbindFromRenderStep("DeltaAimlock")
 	if alHB then alHB:Disconnect(); alHB = nil end
 	if alGui then alGui:Destroy(); alGui = nil end
 end
@@ -340,97 +339,99 @@ end
 local function startAl(fov)
 	stopAl()
 	local F = fov or 120
-	local F2 = F * F
+	local F2 = F*F
 	local A = 0.3
 	local S = 0.015
 	local M = 1000
 	local PR = 0.08
-	local G = p:WaitForChild("PlayerGui")
+	local L = p
+	local C = cam
+	local G = L:WaitForChild("PlayerGui")
 	local g = Instance.new("ScreenGui")
 	g.IgnoreGuiInset = true
 	g.ResetOnSpawn = false
 	g.Parent = G
 	alGui = g
 	local c = Instance.new("Frame")
-	c.AnchorPoint = Vector2.new(.5, .5)
-	c.Position = UDim2.new(.5, 0, .5, 0)
-	c.Size = UDim2.fromOffset(F * 2, F * 2)
+	c.AnchorPoint = Vector2.new(.5,.5)
+	c.Position = UDim2.new(.5,0,.5,0)
+	c.Size = UDim2.fromOffset(F*2,F*2)
 	c.BackgroundTransparency = 1
 	c.Parent = g
 	local u = Instance.new("UICorner")
-	u.CornerRadius = UDim.new(1, 0)
+	u.CornerRadius = UDim.new(1,0)
 	u.Parent = c
-	local st = Instance.new("UIStroke")
-	st.Thickness = 2
-	st.Color = Color3.fromRGB(255, 255, 255)
-	st.Parent = c
+	local s = Instance.new("UIStroke")
+	s.Thickness = 2
+	s.Color = Color3.fromRGB(255,255,255)
+	s.Parent = c
 	local t = nil
 	local d = 0
 	local cp = {}
-	for _, pl in ipairs(game.Players:GetPlayers()) do
-		if pl ~= p then cp[#cp + 1] = pl end
+	for _,pl in ipairs(game.Players:GetPlayers()) do
+		if pl ~= L then cp[#cp+1] = pl end
 	end
-	local pac = game.Players.PlayerAdded:Connect(function(pl)
-		if pl ~= p then cp[#cp + 1] = pl end
+	game.Players.PlayerAdded:Connect(function(pl)
+		if pl ~= L then cp[#cp+1] = pl end
 	end)
-	local prc = game.Players.PlayerRemoving:Connect(function(pl)
-		for i = #cp, 1, -1 do
-			if cp[i] == pl then table.remove(cp, i); break end
+	game.Players.PlayerRemoving:Connect(function(pl)
+		for i=#cp,1,-1 do
+			if cp[i]==pl then table.remove(cp,i) break end
 		end
 	end)
 	local rp = RaycastParams.new()
 	rp.FilterType = Enum.RaycastFilterType.Blacklist
-	local function vi(h)
-		local o = cam.CFrame.Position
-		local dir = h.Position - o
-		rp.FilterDescendantsInstances = {p.Character, h.Parent}
-		local r = workspace:Raycast(o, dir, rp)
-		return not r
+	local function v(h)
+		local o = C.CFrame.Position
+		local dir = h.Position-o
+		rp.FilterDescendantsInstances = {L.Character,h.Parent}
+		local r = workspace:Raycast(o,dir,rp)
+		if not r then return true end
+		return false
 	end
-	local function vt(h)
+	local function ok(h)
 		if not h or not h.Parent then return false end
 		local ch = h.Parent
 		local hu = ch:FindFirstChild("Humanoid")
 		local ro = ch:FindFirstChild("HumanoidRootPart")
-		if not hu or hu.Health <= 0 then return false end
-		local my = p.Character
+		if not hu or hu.Health<=0 then return false end
+		local my = L.Character
 		local mr = my and my:FindFirstChild("HumanoidRootPart")
 		if not mr then return false end
-		if (ro.Position - mr.Position).Magnitude > M then return false end
-		local sp, sv = cam:WorldToViewportPoint(h.Position)
-		if not sv then return false end
-		local vp = cam.ViewportSize
-		local cx = vp.X * .5
-		local cy = vp.Y * .5
-		local dx = sp.X - cx
-		local dy = sp.Y - cy
-		if dx * dx + dy * dy > F2 then return false end
-		if not vi(h) then return false end
+		if (ro.Position-mr.Position).Magnitude>M then return false end
+		local pos,vis = C:WorldToViewportPoint(h.Position)
+		if not vis then return false end
+		local cx = C.ViewportSize.X*.5
+		local cy = C.ViewportSize.Y*.5
+		local dx = pos.X-cx
+		local dy = pos.Y-cy
+		if dx*dx+dy*dy>F2 then return false end
+		if not v(h) then return false end
 		return true
 	end
-	local function gc()
-		local cl, cd = nil, F2
-		local vp = cam.ViewportSize
-		local cx = vp.X * .5
-		local cy = vp.Y * .5
-		local my = p.Character
+	local function gcl()
+		local cl = nil
+		local cd = F2
+		local cx = C.ViewportSize.X*.5
+		local cy = C.ViewportSize.Y*.5
+		local my = L.Character
 		local mr = my and my:FindFirstChild("HumanoidRootPart")
 		if not mr then return nil end
-		for i = 1, #cp do
+		for i=1,#cp do
 			local pl = cp[i]
 			local ch = pl.Character
 			if ch then
 				local h = ch:FindFirstChild("Head")
 				local hu = ch:FindFirstChild("Humanoid")
 				local ro = ch:FindFirstChild("HumanoidRootPart")
-				if h and hu and hu.Health > 0 and ro then
-					if (ro.Position - mr.Position).Magnitude <= M then
-						local pos, sv = cam:WorldToViewportPoint(h.Position)
-						if sv and vi(h) then
-							local dx = pos.X - cx
-							local dy = pos.Y - cy
-							local dist = dx * dx + dy * dy
-							if dist < cd then cd = dist; cl = h end
+				if h and hu and hu.Health>0 and ro then
+					if (ro.Position-mr.Position).Magnitude<=M then
+						local pos,vis = C:WorldToViewportPoint(h.Position)
+						if vis and v(h) then
+							local dx = pos.X-cx
+							local dy = pos.Y-cy
+							local dist = dx*dx+dy*dy
+							if dist<cd then cd=dist cl=h end
 						end
 					end
 				end
@@ -439,28 +440,22 @@ local function startAl(fov)
 		return cl
 	end
 	alHB = rs.Heartbeat:Connect(function(dt)
-		d += dt
-		if d > S then
-			d = 0
-			if not vt(t) then t = gc() end
+		d+=dt
+		if d>S then d=0
+			if not ok(t) then t=gcl() end
 		end
 	end)
-	R:BindToRenderStep("DeltaAimlock", Enum.RenderPriority.Last.Value, function()
+	R:BindToRenderStep("DeltaAimlock",Enum.RenderPriority.Last.Value,function()
 		if t and t.Parent then
 			local ro = t.Parent:FindFirstChild("HumanoidRootPart")
 			local pos = t.Position
 			if ro then
-				local v = ro.AssemblyLinearVelocity
-				pos = pos + Vector3.new(v.X, 0, v.Z) * PR
+				local vv = ro.AssemblyLinearVelocity
+				pos = pos+Vector3.new(vv.X,0,vv.Z)*PR
 			end
-			local cf = CFrame.new(cam.CFrame.Position, pos)
-			cam.CFrame = cam.CFrame:Lerp(cf, A)
+			local cf = CFrame.new(C.CFrame.Position,pos)
+			C.CFrame = C.CFrame:Lerp(cf,A)
 		end
-	end)
-	alConn = true
-	g.Destroying:Connect(function()
-		pac:Disconnect()
-		prc:Disconnect()
 	end)
 end
 
