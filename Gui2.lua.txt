@@ -183,6 +183,55 @@ local function showPicker(pickerDef, callback)
 	end
 end
 
+
+local function makeACGui()
+	local UIS,GS=game:GetService("UserInputService"),game:GetService("GuiService")
+	local pl=game.Players.LocalPlayer
+	if pl.PlayerGui:FindFirstChild("AC_Panel")then pl.PlayerGui.AC_Panel:Destroy()end
+	local ac=getgenv().DeltaCmds.AC
+	if not ac then return end
+	local function mk(c,pa,r)local o=_N(c,pa)for k,v in pairs(r or{})do o[k]=v end return o end
+	local function cor(p,r)mk("UICorner",p,{CornerRadius=UDim.new(0,r or 6)})end
+	local function str(p,c,t)mk("UIStroke",p,{Color=c,Thickness=t or 1})end
+	local SG=mk("ScreenGui",pl.PlayerGui,{Name="AC_Panel",ResetOnSpawn=false})
+	local F=mk("Frame",SG,{Size=_U(0,180,0,195),Position=_U(0.5,-90,0.5,-97),BackgroundColor3=_C(25,25,25),Active=true,Draggable=true})
+	cor(F,8)str(F,_C(0,170,255),2)
+	mk("TextLabel",F,{Size=_U(1,0,0,30),BackgroundTransparency=1,Text="AUTO CLICKER",TextColor3=_C(0,170,255),Font=_GB,TextSize=14})
+	local X=mk("TextButton",F,{Size=_U(0,30,0,30),Position=_U(1,-30,0,0),BackgroundTransparency=1,Text="❌",TextSize=11,TextColor3=_C(200,200,200)})
+	mk("Frame",F,{Size=_U(1,0,0,1),Position=_U(0,0,0,30),BackgroundColor3=_C(0,170,255),BorderSizePixel=0})
+	local GS2=Enum.Font.GothamSemibold
+	local MB=mk("TextButton",F,{Size=_U(0.9,0,0,25),Position=_U(0.05,0,0,40),BackgroundColor3=_C(35,35,35),Text="Mode: Mobile",TextColor3=_C(255,255,255),Font=GS2,TextSize=13})
+	cor(MB)local mS=mk("UIStroke",MB,{Color=_C(100,100,100),Thickness=1})
+	local SB=mk("TextBox",F,{Size=_U(0.9,0,0,25),Position=_U(0.05,0,0,72),BackgroundColor3=_C(20,20,20),Text="0.3",PlaceholderText="Delay (0.3)",TextColor3=_C(220,220,220),Font=GS2,TextSize=13})
+	cor(SB)str(SB,_C(60,60,80))
+	local PB=mk("TextButton",F,{Size=_U(0.9,0,0,32),Position=_U(0.05,0,0,105),BackgroundColor3=_C(35,35,35),Text="Set Target",TextColor3=_C(220,220,220),Font=GS2,TextSize=13})
+	cor(PB)
+	local S=mk("TextButton",F,{Size=_U(0.9,0,0,36),Position=_U(0.05,0,0,145),BackgroundColor3=_C(220,70,70),Text="OFF",TextColor3=_C(255,255,255),Font=_GB,TextSize=18})
+	cor(S)local bS=mk("UIStroke",S,{Color=_C(220,70,70),Thickness=1.5})
+	local M=mk("Frame",SG,{Size=_U(0,14,0,14),BackgroundColor3=_C(80,220,120),Visible=false,AnchorPoint=Vector2.new(0.5,0.5)})
+	cor(M,99)str(M,_C(0,0,0))
+	local picking=false
+	X.MouseButton1Click:Connect(function()ac.active=false;SG:Destroy()end)
+	MB.MouseButton1Click:Connect(function()ac.mode=ac.mode=="Mobile"and"PC"or"Mobile";MB.Text="Mode: "..ac.mode;mS.Color=ac.mode=="PC"and _C(0,170,255)or _C(100,100,100)end)
+	SB.FocusLost:Connect(function()local v=tonumber(SB.Text);ac.delay=(v and v>=0)and v or ac.delay;SB.Text=tostring(ac.delay)end)
+	PB.MouseButton1Click:Connect(function()picking=true;PB.Text="Tap/Click Target...";PB.TextColor3=_C(0,170,255)end)
+	UIS.InputBegan:Connect(function(i,g)
+		if picking and not g and(i.UserInputType.Name=="Touch"or i.UserInputType.Name=="MouseButton1")then
+			ac.target=Vector2.new(i.Position.X,i.Position.Y+GS:GetGuiInset().Y)
+			M.Position=_U(0,i.Position.X,0,i.Position.Y);M.Visible=true;picking=false
+			PB.Text="Target Locked";PB.TextColor3=_C(220,220,220)
+		end
+	end)
+	S.MouseButton1Click:Connect(function()
+		ac.active=not ac.active
+		S.Text=ac.active and"ON"or"OFF"
+		S.BackgroundColor3=ac.active and _C(80,220,120)or _C(220,70,70)
+		bS.Color=ac.active and _C(80,220,120)or _C(220,70,70)
+		if ac.active then for _,e in ipairs(getgenv().DeltaCmds.Cmds)do for _,a in ipairs(e.aliases)do if a=="autoclicker"then e.fn();break end end end end
+	end)
+end
+local function _hookAC()for _,e in ipairs(getgenv().DeltaCmds.Cmds)do for _,a in ipairs(e.aliases)do if a=="autoclicker"then local o=e.fn;e.fn=function()makeACGui();o()end;return end end end end
+_hookAC()
 local aliasMap = {}
 for _, entry in ipairs(getgenv().DeltaCmds.Cmds) do
 	for _, alias in ipairs(entry.aliases) do
