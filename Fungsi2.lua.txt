@@ -4,16 +4,16 @@ local rs = game:GetService("RunService")
 local uis = game:GetService("UserInputService")
 local lighting = game:GetService("Lighting")
 local cam = workspace.CurrentCamera
-local viewConn = nil
+local vwConn = nil
 local viewRemoveConn = nil
-local freecamConn, freecamInputConn, freecamCharConn = nil, nil, nil
-local freecamActive = false
+local fcConn, fcInputConn, fcCharConn = nil, nil, nil
+local fcActive = false
 local freecamCF = nil
 local antiflingConn = nil
 local isMobile = uis.TouchEnabled and not uis.KeyboardEnabled
 local touchRotStart = nil
-local function stopView()
-	if viewConn then viewConn:Disconnect(); viewConn = nil end
+local function stopVw()
+	if vwConn then vwConn:Disconnect(); vwConn = nil end
 	if viewRemoveConn then viewRemoveConn:Disconnect(); viewRemoveConn = nil end
 	local char = p.Character
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -22,8 +22,8 @@ local function stopView()
 		cam.CameraType = Enum.CameraType.Custom
 	end
 end
-local function startView(name)
-	stopView()
+local function startVw(name)
+	stopVw()
 	local target = getgenv().DeltaCmds.resolveTargets(name)[1]
 	if not target then return end
 	local function applySubject()
@@ -35,19 +35,20 @@ local function startView(name)
 		end
 	end
 	applySubject()
-	viewConn = target.CharacterAdded:Connect(function()
+	vwConn = target.CharacterAdded:Connect(function()
 		task.wait(0.1)
 		applySubject()
 	end)
 	viewRemoveConn = game.Players.PlayerRemoving:Connect(function(pl)
-		if pl == target then stopView() end
+		if pl == target then stopVw() end
 	end)
 end
-local function stopFreecam()
-	freecamActive = false
-	if freecamConn then freecamConn:Disconnect(); freecamConn = nil end
-	if freecamCharConn then freecamCharConn:Disconnect(); freecamCharConn = nil end
-	if freecamInputConn then freecamInputConn:Disconnect(); freecamInputConn = nil end
+local _up = Vector3.new(0,1,0)
+local function stopFc()
+	fcActive = false
+	if fcConn then fcConn:Disconnect(); fcConn = nil end
+	if fcCharConn then fcCharConn:Disconnect(); fcCharConn = nil end
+	if fcInputConn then fcInputConn:Disconnect(); fcInputConn = nil end
 	touchRotStart = nil
 	cam.CameraType = Enum.CameraType.Custom
 	local char = p.Character
@@ -60,9 +61,9 @@ local function stopFreecam()
 		if bv then bv:Destroy() end
 	end
 end
-local function startFreecam(spd)
-	stopFreecam()
-	freecamActive = true
+local function startFc(spd)
+	stopFc()
+	fcActive = true
 	cam.CameraType = Enum.CameraType.Scriptable
 	freecamCF = cam.CFrame
 	local speed = spd or 1
@@ -76,9 +77,9 @@ local function startFreecam(spd)
 		end
 	end
 	if p.Character then applyFreezeBV(p.Character) end
-	freecamCharConn = p.CharacterAdded:Connect(applyFreezeBV)
-	freecamConn = rs.RenderStepped:Connect(function(dt)
-		if not freecamActive then return end
+	fcCharConn = p.CharacterAdded:Connect(applyFreezeBV)
+	fcConn = rs.RenderStepped:Connect(function(dt)
+		if not fcActive then return end
 		cam.CameraType = Enum.CameraType.Scriptable
 		local cf = freecamCF
 		local move = Vector3.zero
@@ -97,8 +98,8 @@ local function startFreecam(spd)
 			if uis:IsKeyDown(Enum.KeyCode.S) then move -= cf.LookVector end
 			if uis:IsKeyDown(Enum.KeyCode.A) then move -= cf.RightVector end
 			if uis:IsKeyDown(Enum.KeyCode.D) then move += cf.RightVector end
-			if uis:IsKeyDown(Enum.KeyCode.E) or uis:IsKeyDown(Enum.KeyCode.Space) then move += Vector3.new(0,1,0) end
-			if uis:IsKeyDown(Enum.KeyCode.Q) then move -= Vector3.new(0,1,0) end
+			if uis:IsKeyDown(Enum.KeyCode.E) or uis:IsKeyDown(Enum.KeyCode.Space) then move += _up end
+			if uis:IsKeyDown(Enum.KeyCode.Q) then move -= _up end
 			if move.Magnitude > 0 then
 				freecamCF = CFrame.new(cf.Position + move.Unit * spd2 * 60 * dt) * (cf - cf.Position)
 			end
@@ -108,8 +109,8 @@ local function startFreecam(spd)
 	if isMobile then
 		local screenSize = cam.ViewportSize
 		local rightHalf = screenSize.X / 2
-		freecamInputConn = uis.InputChanged:Connect(function(input)
-			if not freecamActive then return end
+		fcInputConn = uis.InputChanged:Connect(function(input)
+			if not fcActive then return end
 			if input.UserInputType == Enum.UserInputType.Touch then
 				local pos = input.Position
 				if pos.X >= rightHalf then
@@ -127,21 +128,21 @@ local function startFreecam(spd)
 			end
 		end)
 		local touchStartConn = uis.TouchStarted:Connect(function(input)
-			if not freecamActive then return end
+			if not fcActive then return end
 			local pos = input.Position
 			if pos.X >= rightHalf then
 				touchRotStart = Vector2.new(pos.X, pos.Y)
 			end
 		end)
 		local touchEndConn = uis.TouchEnded:Connect(function(input)
-			if not freecamActive then return end
+			if not fcActive then return end
 			local pos = input.Position
 			if pos.X >= rightHalf then
 				touchRotStart = nil
 			end
 		end)
-		local oldInputConn = freecamInputConn
-		freecamInputConn = {
+		local oldInputConn = fcInputConn
+		fcInputConn = {
 			Disconnect = function()
 				if oldInputConn then oldInputConn:Disconnect() end
 				touchStartConn:Disconnect()
@@ -149,8 +150,8 @@ local function startFreecam(spd)
 			end
 		}
 	else
-		freecamInputConn = uis.InputChanged:Connect(function(input)
-			if not freecamActive then return end
+		fcInputConn = uis.InputChanged:Connect(function(input)
+			if not fcActive then return end
 			if input.UserInputType == Enum.UserInputType.MouseMovement then
 				local dx = -input.Delta.X * 0.003
 				local dy = -input.Delta.Y * 0.003
@@ -164,45 +165,44 @@ local function startFreecam(spd)
 	end
 end
 local origFog = lighting.FogEnd
-local nofogActive = false
-local nofogConn = nil
-local function startNofog()
+local nfActive = false
+local nfConn = nil
+local function startNf()
 	origFog = lighting.FogEnd
-	nofogActive = true
+	nfActive = true
 	lighting.FogEnd = 1e9
-	if nofogConn then nofogConn:Disconnect() end
-	nofogConn = lighting:GetPropertyChangedSignal("FogEnd"):Connect(function()
-		if nofogActive and lighting.FogEnd < 1e9 then
+	if nfConn then nfConn:Disconnect() end
+	nfConn = lighting:GetPropertyChangedSignal("FogEnd"):Connect(function()
+		if nfActive and lighting.FogEnd < 1e9 then
 			lighting.FogEnd = 1e9
 		end
 	end)
 end
-local function stopNofog()
-	if not nofogActive then return end
-	nofogActive = false
-	if nofogConn then nofogConn:Disconnect(); nofogConn = nil end
+local function stopNf()
+	if not nfActive then return end
+	nfActive = false
+	if nfConn then nfConn:Disconnect(); nfConn = nil end
 	lighting.FogEnd = origFog
 end
-local antiflingConns = {}
-local antiflingOriginal = {}
-local function stopAntifling()
-	for _, conn in ipairs(antiflingConns) do conn:Disconnect() end
-	antiflingConns = {}
+local aflConns = {}
+local aflOrig = {}
+local function stopAfl()
+	for _, conn in ipairs(aflConns) do conn:Disconnect() end
+	aflConns = {}
 	if antiflingConn then antiflingConn:Disconnect(); antiflingConn = nil end
-	for part, orig in pairs(antiflingOriginal) do
+	for part, orig in pairs(aflOrig) do
 		if part and part.Parent then part.CanCollide = orig end
 	end
-	antiflingOriginal = {}
+	aflOrig = {}
 end
-local function startAntifling()
-	stopAntifling()
+local function startAfl()
+	stopAfl()
 	local function applyPart(part)
-		if not antiflingOriginal[part] then
-			antiflingOriginal[part] = part.CanCollide
-			-- Cleanup otomatis waktu part dihancurkan
+		if not aflOrig[part] then
+			aflOrig[part] = part.CanCollide
 			part.AncestryChanged:Connect(function()
 				if not part.Parent then
-					antiflingOriginal[part] = nil
+					aflOrig[part] = nil
 				end
 			end)
 		end
@@ -212,29 +212,29 @@ local function startAntifling()
 		for _, part in ipairs(char:GetDescendants()) do
 			if part:IsA("BasePart") then applyPart(part) end
 		end
-		antiflingConns[#antiflingConns+1] = char.DescendantAdded:Connect(function(part)
+		aflConns[#aflConns+1] = char.DescendantAdded:Connect(function(part)
 			if part:IsA("BasePart") then applyPart(part) end
 		end)
 	end
 	local function onPlayer(pl)
 		if pl == p then return end
 		if pl.Character then applyChar(pl.Character) end
-		antiflingConns[#antiflingConns+1] = pl.CharacterAdded:Connect(applyChar)
+		aflConns[#aflConns+1] = pl.CharacterAdded:Connect(applyChar)
 	end
 	for _, pl in ipairs(game.Players:GetPlayers()) do onPlayer(pl) end
 	antiflingConn = game.Players.PlayerAdded:Connect(onPlayer)
 end
-local freezeConn = nil
-local function stopFreeze()
-	if freezeConn then freezeConn:Disconnect(); freezeConn = nil end
+local frzConn = nil
+local function stopFrz()
+	if frzConn then frzConn:Disconnect(); frzConn = nil end
 	local char = p.Character
 	if not char then return end
 	for _, v in ipairs(char:GetDescendants()) do
 		if v:IsA("BasePart") then v.Anchored = false end
 	end
 end
-local function startFreeze()
-	stopFreeze()
+local function startFrz()
+	stopFrz()
 	local function applyFreeze(char)
 		for _, v in ipairs(char:GetDescendants()) do
 			if v:IsA("BasePart") then v.Anchored = true end
@@ -242,37 +242,45 @@ local function startFreeze()
 	end
 	local char = p.Character or p.CharacterAdded:Wait()
 	applyFreeze(char)
-	freezeConn = p.CharacterAdded:Connect(applyFreeze)
+	frzConn = p.CharacterAdded:Connect(applyFreeze)
 end
-getgenv().DeltaCmds.startFreecam = startFreecam
-getgenv().DeltaCmds.stopFreecam  = stopFreecam
-getgenv().DeltaCmds.startFreeze  = startFreeze
-getgenv().DeltaCmds.stopFreeze   = stopFreeze
+getgenv().DeltaCmds.startFc = startFc
+getgenv().DeltaCmds.stopFc  = stopFc
+getgenv().DeltaCmds.startFrz  = startFrz
+getgenv().DeltaCmds.stopFrz   = stopFrz
 
--- Anti Kick
-local antikickActive = false
-local function startAntikick()
-	if antikickActive then return end
-	antikickActive = true
+local tps = game:GetService("TeleportService")
+local hs = game:GetService("HttpService")
+local akActive = false
+local akOrig = nil
+local function startAk()
+	if akActive then return end
+	akActive = true
 	local m = getrawmetatable(game)
 	setreadonly(m, false)
-	local o = m.__namecall
+	akOrig = m.__namecall
 	m.__namecall = newcclosure(function(s, ...)
 		if tostring(getnamecallmethod()) == "Kick" then
 			task.wait(9e9)
 			return
 		end
-		return o(s, ...)
+		return akOrig(s, ...)
 	end)
 	setreadonly(m, true)
 end
+local function stopAk()
+	if not akActive then return end
+	local m = getrawmetatable(game)
+	setreadonly(m, false)
+	m.__namecall = akOrig
+	setreadonly(m, true)
+	akOrig = nil
+	akActive = false
+end
 
--- Serverhop (server random)
 local function serverhop()
-	local tps = game:GetService("TeleportService")
-	local hs = game:GetService("HttpService")
 	local placeId = game.PlaceId
-	local currentJobId = game.JobId
+	local curJob = game.JobId
 	local servers = {}
 	local cursor = ""
 	repeat
@@ -283,7 +291,7 @@ local function serverhop()
 		local data = hs:JSONDecode(res)
 		if not data or not data.data then break end
 		for _, s in ipairs(data.data) do
-			if s.id ~= currentJobId and s.playing < s.maxPlayers then
+			if s.id ~= curJob and s.playing < s.maxPlayers then
 				servers[#servers+1] = s
 			end
 		end
@@ -294,12 +302,9 @@ local function serverhop()
 	tps:TeleportToPlaceInstance(placeId, pick.id, p)
 end
 
--- Smallserverhop (server paling sedikit playernya)
-local function smallserverhop()
-	local tps = game:GetService("TeleportService")
-	local hs = game:GetService("HttpService")
+local function sshop_fn()
 	local placeId = game.PlaceId
-	local currentJobId = game.JobId
+	local curJob = game.JobId
 	local cursor = ""
 	local best = nil
 	repeat
@@ -310,7 +315,7 @@ local function smallserverhop()
 		local data = hs:JSONDecode(res)
 		if not data or not data.data then break end
 		for _, s in ipairs(data.data) do
-			if s.id ~= currentJobId and s.playing < s.maxPlayers then
+			if s.id ~= curJob and s.playing < s.maxPlayers then
 				if not best or s.playing < best.playing then
 					best = s
 				end
@@ -322,24 +327,164 @@ local function smallserverhop()
 	tps:TeleportToPlaceInstance(placeId, best.id, p)
 end
 
+local alGui = nil
+local alConn = nil
+local alHB = nil
+
+local function stopAl()
+	if alConn then R:UnbindFromRenderStep("DeltaAimlock"); alConn = nil end
+	if alHB then alHB:Disconnect(); alHB = nil end
+	if alGui then alGui:Destroy(); alGui = nil end
+end
+
+local function startAl(fov)
+	stopAl()
+	local F = fov or 120
+	local F2 = F * F
+	local A = 0.3
+	local S = 0.015
+	local M = 1000
+	local PR = 0.08
+	local G = p:WaitForChild("PlayerGui")
+	local g = Instance.new("ScreenGui")
+	g.IgnoreGuiInset = true
+	g.ResetOnSpawn = false
+	g.Parent = G
+	alGui = g
+	local c = Instance.new("Frame")
+	c.AnchorPoint = Vector2.new(.5, .5)
+	c.Position = UDim2.new(.5, 0, .5, 0)
+	c.Size = UDim2.fromOffset(F * 2, F * 2)
+	c.BackgroundTransparency = 1
+	c.Parent = g
+	local u = Instance.new("UICorner")
+	u.CornerRadius = UDim.new(1, 0)
+	u.Parent = c
+	local st = Instance.new("UIStroke")
+	st.Thickness = 2
+	st.Color = Color3.fromRGB(255, 255, 255)
+	st.Parent = c
+	local t = nil
+	local d = 0
+	local cp = {}
+	for _, pl in ipairs(game.Players:GetPlayers()) do
+		if pl ~= p then cp[#cp + 1] = pl end
+	end
+	local pac = game.Players.PlayerAdded:Connect(function(pl)
+		if pl ~= p then cp[#cp + 1] = pl end
+	end)
+	local prc = game.Players.PlayerRemoving:Connect(function(pl)
+		for i = #cp, 1, -1 do
+			if cp[i] == pl then table.remove(cp, i); break end
+		end
+	end)
+	local rp = RaycastParams.new()
+	rp.FilterType = Enum.RaycastFilterType.Blacklist
+	local function vi(h)
+		local o = cam.CFrame.Position
+		local dir = h.Position - o
+		rp.FilterDescendantsInstances = {p.Character, h.Parent}
+		local r = workspace:Raycast(o, dir, rp)
+		return not r
+	end
+	local function vt(h)
+		if not h or not h.Parent then return false end
+		local ch = h.Parent
+		local hu = ch:FindFirstChild("Humanoid")
+		local ro = ch:FindFirstChild("HumanoidRootPart")
+		if not hu or hu.Health <= 0 then return false end
+		local my = p.Character
+		local mr = my and my:FindFirstChild("HumanoidRootPart")
+		if not mr then return false end
+		if (ro.Position - mr.Position).Magnitude > M then return false end
+		local sp, sv = cam:WorldToViewportPoint(h.Position)
+		if not sv then return false end
+		local vp = cam.ViewportSize
+		local cx = vp.X * .5
+		local cy = vp.Y * .5
+		local dx = sp.X - cx
+		local dy = sp.Y - cy
+		if dx * dx + dy * dy > F2 then return false end
+		if not vi(h) then return false end
+		return true
+	end
+	local function gc()
+		local cl, cd = nil, F2
+		local vp = cam.ViewportSize
+		local cx = vp.X * .5
+		local cy = vp.Y * .5
+		local my = p.Character
+		local mr = my and my:FindFirstChild("HumanoidRootPart")
+		if not mr then return nil end
+		for i = 1, #cp do
+			local pl = cp[i]
+			local ch = pl.Character
+			if ch then
+				local h = ch:FindFirstChild("Head")
+				local hu = ch:FindFirstChild("Humanoid")
+				local ro = ch:FindFirstChild("HumanoidRootPart")
+				if h and hu and hu.Health > 0 and ro then
+					if (ro.Position - mr.Position).Magnitude <= M then
+						local pos, sv = cam:WorldToViewportPoint(h.Position)
+						if sv and vi(h) then
+							local dx = pos.X - cx
+							local dy = pos.Y - cy
+							local dist = dx * dx + dy * dy
+							if dist < cd then cd = dist; cl = h end
+						end
+					end
+				end
+			end
+		end
+		return cl
+	end
+	alHB = rs.Heartbeat:Connect(function(dt)
+		d += dt
+		if d > S then
+			d = 0
+			if not vt(t) then t = gc() end
+		end
+	end)
+	R:BindToRenderStep("DeltaAimlock", Enum.RenderPriority.Last.Value, function()
+		if t and t.Parent then
+			local ro = t.Parent:FindFirstChild("HumanoidRootPart")
+			local pos = t.Position
+			if ro then
+				local v = ro.AssemblyLinearVelocity
+				pos = pos + Vector3.new(v.X, 0, v.Z) * PR
+			end
+			local cf = CFrame.new(cam.CFrame.Position, pos)
+			cam.CFrame = cam.CFrame:Lerp(cf, A)
+		end
+	end)
+	alConn = true
+	g.Destroying:Connect(function()
+		pac:Disconnect()
+		prc:Disconnect()
+	end)
+end
+
 local newCmds = {
-	{ aliases = {"view", "spectate"},     args = "[player]", fn = function(v) if v then startView(v) else stopView() end end },
-	{ aliases = {"unview", "unspectate"}, fn = function()  stopView() end },
-	{ aliases = {"freecam", "fc"},        args = "[speed]", fn = function(v) startFreecam(tonumber(v)) end,
-	  hud = "speed", hudDefault = 50, hudStart = "startFreecam", hudStop = "stopFreecam",
+	{ aliases = {"view", "spectate"},     args = "[player]", fn = function(v) if v then startVw(v) else stopVw() end end },
+	{ aliases = {"unview", "unspectate"}, fn = function()  stopVw() end },
+	{ aliases = {"freecam", "fc"},        args = "[speed]", fn = function(v) startFc(tonumber(v)) end,
+	  hud = "speed", hudDefault = 50, hudStart = "startFc", hudStop = "stopFc",
 	  hudOn = {"freecam", "fc"}, hudOff = {"unfreecam", "unfc"} },
-	{ aliases = {"unfreecam", "unfc"},    fn = function()  stopFreecam() end },
-	{ aliases = {"nofog"},                fn = function()  startNofog() end },
-	{ aliases = {"unnofog"},              fn = function()  stopNofog() end },
-	{ aliases = {"antifling"},            fn = function()  startAntifling() end },
-	{ aliases = {"unantifling"},          fn = function()  stopAntifling() end },
-	{ aliases = {"freeze"},               fn = function()  startFreeze() end,
-	  hud = "toggle", hudStart = "startFreeze", hudStop = "stopFreeze",
+	{ aliases = {"unfreecam", "unfc"},    fn = function()  stopFc() end },
+	{ aliases = {"nofog"},                fn = function()  startNf() end },
+	{ aliases = {"unnofog"},              fn = function()  stopNf() end },
+	{ aliases = {"antifling"},            fn = function()  startAfl() end },
+	{ aliases = {"unantifling"},          fn = function()  stopAfl() end },
+	{ aliases = {"freeze"},               fn = function()  startFrz() end,
+	  hud = "toggle", hudStart = "startFrz", hudStop = "stopFrz",
 	  hudOn = {"freeze"}, hudOff = {"unfreeze"} },
-	{ aliases = {"unfreeze"},             fn = function()  stopFreeze() end },
-	{ aliases = {"antikick"},             fn = function()  startAntikick() end },
+	{ aliases = {"unfreeze"},             fn = function()  stopFrz() end },
+	{ aliases = {"antikick"},             fn = function()  startAk() end },
+	{ aliases = {"unantikick"},           fn = function()  stopAk() end },
 	{ aliases = {"serverhop", "shop"},    fn = function()  task.spawn(serverhop) end },
-	{ aliases = {"smallserverhop", "sshop"}, fn = function() task.spawn(smallserverhop) end },
+	{ aliases = {"smallserverhop", "sshop"}, fn = function() task.spawn(sshop_fn) end },
+	{ aliases = {"aimlock"},              args = "[fov]", fn = function(v) startAl(tonumber(v)) end },
+	{ aliases = {"unaimlock"},            fn = function()  stopAl() end },
 }
 local cmds = getgenv().DeltaCmds.Cmds
 local insertAt = #cmds
