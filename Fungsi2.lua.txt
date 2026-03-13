@@ -515,6 +515,41 @@ local function startAvis()
 	pl.PlayerAdded:Connect(function(player)player.CharacterAdded:Connect(c)end)
 end
 
+
+local function startAutoClick()
+	local VIM = game:GetService("VirtualInputManager")
+	local ac = getgenv().DeltaCmds.AC
+	if not ac then return end
+	ac.active = true
+	task.spawn(function()
+		while ac.active do
+			pcall(function()
+				local t,m,d = ac.target, ac.mode, ac.delay
+				if m=="Mobile" then
+					VIM:SendTouchEvent(999,0,t.X,t.Y)
+					if d>0 then task.wait(d/2) end
+					VIM:SendTouchEvent(999,2,t.X,t.Y)
+				elseif m=="PC" then
+					VIM:SendMouseButtonEvent(t.X,t.Y,0,true,game,1)
+					if d>0 then task.wait(d/2) end
+					VIM:SendMouseButtonEvent(t.X,t.Y,0,false,game,1)
+				end
+			end)
+			if ac.delay>0 then task.wait(ac.delay/2) else task.wait() end
+		end
+	end)
+end
+local function stopAutoClick()
+	local ac = getgenv().DeltaCmds.AC
+	if ac then ac.active = false end
+end
+getgenv().DeltaCmds.AC = {
+	active = false,
+	target = Vector2.new(0,0),
+	mode = "Mobile",
+	delay = 0.3,
+}
+
 local newCmds = {
 	{ aliases = {"view", "spectate"},     args = "[player]", fn = function(v) if v then startVw(v) else stopVw() end end },
 	{ aliases = {"unview", "unspectate"}, fn = function()  stopVw() end },
@@ -538,6 +573,8 @@ local newCmds = {
 	{ aliases = {"unaimlock"},            fn = function()  stopAl() end },
 	{ aliases = {"noeffect"},             fn = function()  startNoEffect() end },
 	{ aliases = {"antiinvisible","antiinvis","avis"}, args = "[client]", fn = function()  startAvis() end },
+	{ aliases = {"autoclicker","autoclick"},          fn = function()  startAutoClick() end },
+	{ aliases = {"unautoclicker","unautoclick"},       fn = function()  stopAutoClick() end },
 }
 local cmds = getgenv().DeltaCmds.Cmds
 local insertAt = #cmds
