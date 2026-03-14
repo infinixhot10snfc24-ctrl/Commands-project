@@ -30,12 +30,17 @@ local function startSa()
 	if saOld then return end
 	local mouse=p:GetMouse()
 	local maxDist=1000
+	local _saTarget=nil
+	local _saLast=0
 	local function getTarget()
+		local now=tick()
+		if now-_saLast<0.05 then return _saTarget end
+		_saLast=now
 		local t,sd=nil,maxDist
 		local my=p.Character
 		local mr=my and my:FindFirstChild("HumanoidRootPart")
-		if not mr then return end
-		for _,v in pairs(game.Players:GetPlayers())do
+		if not mr then _saTarget=nil;return end
+		for _,v in ipairs(game.Players:GetPlayers())do
 			if v~=p and v.Character then
 				local h=v.Character:FindFirstChild("Head")
 				local hu=v.Character:FindFirstChild("Humanoid")
@@ -46,6 +51,7 @@ local function startSa()
 				end
 			end
 		end
+		_saTarget=t
 		return t
 	end
 	saOld=hookmetamethod(game,"__index",newcclosure(function(self,key)
@@ -65,11 +71,15 @@ local tpwConn=nil
 local function startTpw(spd)
 	if tpwConn then tpwConn:Disconnect() end
 	local s=spd or 0.5
+	local _tpwHum=nil
+	p.CharacterAdded:Connect(function() _tpwHum=nil end)
 	tpwConn=rs.Stepped:Connect(function()
-		local char=p.Character
-		local hum=char and char:FindFirstChildOfClass("Humanoid")
-		if hum and hum.MoveDirection.Magnitude>0 then
-			char:TranslateBy(hum.MoveDirection*s)
+		if not _tpwHum or not _tpwHum.Parent then
+			local c=p.Character
+			_tpwHum=c and c:FindFirstChildOfClass("Humanoid")
+		end
+		if _tpwHum and _tpwHum.MoveDirection.Magnitude>0 then
+			_tpwHum.Parent:TranslateBy(_tpwHum.MoveDirection*s)
 		end
 	end)
 end
