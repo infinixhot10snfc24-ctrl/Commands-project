@@ -331,7 +331,7 @@ local alGui = nil
 local alHB = nil
 
 local function stopAl()
-	R:UnbindFromRenderStep("DeltaAimlock")
+	rs:UnbindFromRenderStep("DeltaAimlock")
 	if alHB then alHB:Disconnect(); alHB = nil end
 	if alGui then alGui:Destroy(); alGui = nil end
 end
@@ -445,7 +445,7 @@ local function startAl(fov)
 			if not ok(t) then t=gcl() end
 		end
 	end)
-	R:BindToRenderStep("DeltaAimlock",Enum.RenderPriority.Last.Value,function()
+	rs:BindToRenderStep("DeltaAimlock",Enum.RenderPriority.Last.Value,function()
 		if t and t.Parent then
 			local ro = t.Parent:FindFirstChild("HumanoidRootPart")
 			local pos = t.Position
