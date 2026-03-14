@@ -1,4 +1,3 @@
-
 repeat task.wait() until getgenv().DeltaCmds
 	and getgenv().DeltaCmds.Cmds
 	and getgenv().DeltaCmds.Pickers
