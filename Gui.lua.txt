@@ -417,6 +417,8 @@ stopFn()
 end,
 }
 end
+getgenv().DeltaCmds._makeHUD = makeHUD
+getgenv().DeltaCmds._makeToggleHUD = makeToggleHUD
 local DC = getgenv().DeltaCmds
 local cmds = getgenv().DeltaCmds.Cmds
 local hudMap = {}
