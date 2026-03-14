@@ -1,0 +1,163 @@
+repeat task.wait() until getgenv().DeltaCmds and getgenv().DeltaCmds.Cmds
+local p=game.Players.LocalPlayer
+local rs=game:GetService("RunService")
+local cam=workspace.CurrentCamera
+
+local wfConn=nil
+local function startWf()
+	if wfConn then return end
+	local function getRoot(char)
+		return char and(char:FindFirstChild("HumanoidRootPart")or char:FindFirstChild("Torso")or char:FindFirstChild("UpperTorso"))
+	end
+	wfConn=rs.Heartbeat:Connect(function()
+		local char=p.Character
+		local root=getRoot(char)
+		if not root then return end
+		local vel=root.Velocity
+		root.Velocity=vel*10000+Vector3.new(0,10000,0)
+		rs.RenderStepped:Wait()
+		if root then root.Velocity=vel end
+		rs.RenderStepped:Wait()
+		if root then root.Velocity=vel+Vector3.new(0,0.1,0)end
+	end)
+end
+local function stopWf()
+	if wfConn then wfConn:Disconnect();wfConn=nil end
+end
+
+local saOld=nil
+local function startSa()
+	if saOld then return end
+	local mouse=p:GetMouse()
+	local maxDist=1000
+	local function getTarget()
+		local t,sd=nil,maxDist
+		local my=p.Character
+		local mr=my and my:FindFirstChild("HumanoidRootPart")
+		if not mr then return end
+		for _,v in pairs(game.Players:GetPlayers())do
+			if v~=p and v.Character then
+				local h=v.Character:FindFirstChild("Head")
+				local hu=v.Character:FindFirstChild("Humanoid")
+				local tr=v.Character:FindFirstChild("HumanoidRootPart")
+				if h and hu and hu.Health>0 and tr then
+					local d=(mr.Position-tr.Position).Magnitude
+					if d<sd then t=v;sd=d end
+				end
+			end
+		end
+		return t
+	end
+	saOld=hookmetamethod(game,"__index",newcclosure(function(self,key)
+		if self==mouse and(key=="Hit"or key=="Target")then
+			local t=getTarget()
+			if t then
+				local h=t.Character and t.Character:FindFirstChild("Head")
+				if h then return key=="Hit"and h.CFrame or h end
+			end
+		end
+		return saOld(self,key)
+	end))
+end
+
+
+local tpwConn=nil
+local function startTpw(spd)
+	if tpwConn then tpwConn:Disconnect() end
+	local s=spd or 0.5
+	tpwConn=rs.Stepped:Connect(function()
+		local char=p.Character
+		local hum=char and char:FindFirstChildOfClass("Humanoid")
+		if hum and hum.MoveDirection.Magnitude>0 then
+			char:TranslateBy(hum.MoveDirection*s)
+		end
+	end)
+end
+local function stopTpw()
+	if tpwConn then tpwConn:Disconnect();tpwConn=nil end
+end
+
+local vfConn=nil
+local vfCharConn=nil
+local function stopVf()
+	if vfConn then vfConn:Disconnect();vfConn=nil end
+	if vfCharConn then vfCharConn:Disconnect();vfCharConn=nil end
+	local char=p.Character
+	if char then
+		local root=char:FindFirstChild("HumanoidRootPart")
+		if root then
+			local bg=root:FindFirstChild("NA_Gyro")
+			local bv=root:FindFirstChild("NA_Velocity")
+			if bg then bg:Destroy() end
+			if bv then bv:Destroy() end
+		end
+	end
+end
+getgenv().DeltaCmds.startVf=function(spd)
+	stopVf()
+	local speed=spd or 50
+	local function doFly(char)
+		local root=char:WaitForChild("HumanoidRootPart",5)
+		if not root then return end
+		local bg=Instance.new("BodyGyro",root)
+		bg.Name="NA_Gyro";bg.MaxTorque=Vector3.new(9e9,9e9,9e9);bg.P=9e4
+		local bv=Instance.new("BodyVelocity",root)
+		bv.Name="NA_Velocity";bv.MaxForce=Vector3.new(9e9,9e9,9e9);bv.Velocity=Vector3.zero
+		vfConn=rs.Heartbeat:Connect(function()
+			if not char:IsDescendantOf(workspace)or not bg.Parent or not bv.Parent then
+				vfConn:Disconnect();vfConn=nil;bg:Destroy();bv:Destroy();return
+			end
+			local mv=getgenv().DeltaCmds.ctrls:GetMoveVector()
+			if mv.Magnitude>0 then
+				bv.Velocity=cam.CFrame:VectorToWorldSpace(Vector3.new(mv.X,0,mv.Z))*speed
+			else
+				bv.Velocity=Vector3.zero
+			end
+			bg.CFrame=cam.CFrame
+		end)
+	end
+	if p.Character then doFly(p.Character) end
+	vfCharConn=p.CharacterAdded:Connect(doFly)
+end
+getgenv().DeltaCmds.stopVf=stopVf
+
+local function startReach(sz)
+	local size=tonumber(sz)or 25
+	local char=p.Character
+	local tool=char and char:FindFirstChildOfClass("Tool")
+		or p.Backpack:FindFirstChildOfClass("Tool")
+	if not tool then return end
+	local val=Instance.new("Vector3Value",tool)
+	val.Name="OGSize3";val.Value=tool.Handle.Size
+	local sb=Instance.new("SelectionBox")
+	sb.Adornee=tool.Handle;sb.Name="FunTIMES"
+	sb.Transparency=1;sb.Parent=tool.Handle
+	tool.Handle.Massless=true
+	tool.Handle.Size=Vector3.new(size,size,size)
+end
+
+local function startStats()
+	getgenv().DeltaCmds._showStats=true
+end
+
+local newCmds={
+	{aliases={"walkfling","wf"},              fn=function() startWf() end},
+	{aliases={"unwalkfling","unwf"},          fn=function() stopWf() end},
+	{aliases={"silentaim"},            fn=function() startSa() end},
+	{aliases={"tpwalkspeed","tpwalk"},        args="[speed]", fn=function(v) startTpw(tonumber(v)) end},
+	{aliases={"untpwalkspeed","untpwalk"},    fn=function() stopTpw() end},
+	{aliases={"vehiclefly","vfly"},           args="[speed]", fn=function(v) getgenv().DeltaCmds.startVf(tonumber(v)) end,
+	 hud="speed",hudDefault=50,hudStart="startVf",hudStop="stopVf",
+	 hudOn={"vehiclefly","vfly"},hudOff={"unvehiclefly","unvfly"}},
+	{aliases={"unvehiclefly","unvfly"},       fn=function() stopVf() end},
+	{aliases={"reach"},                       args="[size]", fn=function(v) startReach(v) end},
+	{aliases={"stats"},                       fn=function() startStats() end},
+}
+local cmds=getgenv().DeltaCmds.Cmds
+local insertAt=#cmds
+for i,entry in ipairs(cmds)do
+	if entry.aliases[1]=="commands"then insertAt=i;break end
+end
+for i,entry in ipairs(newCmds)do
+	table.insert(cmds,insertAt+i-1,entry)
+end
