@@ -586,4 +586,4 @@ if clickingSugg then return end
 local input = string.lower(box.Text)
 if not enter and input == "" then closeCmd(nil); return end
 closeCmd(input)
-end)
+end)getgenv().DeltaCmds.runCmd=runCommand
