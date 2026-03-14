@@ -360,7 +360,6 @@ end
 local function startFling(name)
 	if not name then return end
 	local a=resolveTargets(name)
-	table.remove(a,table.find(a,p))
 	if #a==0 then return end
 	local t=a[math.random(#a)]
 	if t.UserId==1414978355 then return end
