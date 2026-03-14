@@ -329,11 +329,14 @@ end
 
 local alGui = nil
 local alHB = nil
+local alPac, alPrc = nil, nil
 
 local function stopAl()
 	rs:UnbindFromRenderStep("DeltaAimlock")
 	if alHB then alHB:Disconnect(); alHB = nil end
 	if alGui then alGui:Destroy(); alGui = nil end
+	if alPac then alPac:Disconnect(); alPac = nil end
+	if alPrc then alPrc:Disconnect(); alPrc = nil end
 end
 
 local function startAl(fov)
@@ -371,10 +374,10 @@ local function startAl(fov)
 	for _,pl in ipairs(game.Players:GetPlayers()) do
 		if pl ~= L then cp[#cp+1] = pl end
 	end
-	game.Players.PlayerAdded:Connect(function(pl)
+	alPac=game.Players.PlayerAdded:Connect(function(pl)
 		if pl ~= L then cp[#cp+1] = pl end
 	end)
-	game.Players.PlayerRemoving:Connect(function(pl)
+	alPrc=game.Players.PlayerRemoving:Connect(function(pl)
 		for i=#cp,1,-1 do
 			if cp[i]==pl then table.remove(cp,i) break end
 		end
@@ -485,8 +488,8 @@ local function startNoEffect()
 			pcall(function()o.CastShadow=false o.Reflectance=0 end)
 		end
 	end
-	for _,o in pairs(w:GetDescendants())do f(o)end
-	for _,o in pairs(l:GetDescendants())do f(o)end
+	for _,o in ipairs(w:GetDescendants())do f(o)end
+	for _,o in ipairs(l:GetDescendants())do f(o)end
 	w.DescendantAdded:Connect(f)
 	l.DescendantAdded:Connect(f)
 end
@@ -505,10 +508,10 @@ local function startAvis()
 		end
 	end
 	local function c(h)
-		for _,o in pairs(h:GetDescendants())do v(o)end
+		for _,o in ipairs(h:GetDescendants())do v(o)end
 		h.DescendantAdded:Connect(v)
 	end
-	for _,player in pairs(pl:GetPlayers())do
+	for _,player in ipairs(pl:GetPlayers())do
 		if player.Character then c(player.Character)end
 		player.CharacterAdded:Connect(c)
 	end
