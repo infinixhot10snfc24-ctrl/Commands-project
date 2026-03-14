@@ -232,6 +232,61 @@ local function makeACGui()
 end
 local function _hookAC()for _,e in ipairs(getgenv().DeltaCmds.Cmds)do for _,a in ipairs(e.aliases)do if a=="autoclicker"then local o=e.fn;e.fn=function()makeACGui();o()end;return end end end end
 _hookAC()
+
+local function makeStatsGui()
+	local ST=game:GetService("Stats")
+	local pl=game.Players.LocalPlayer
+	if pl.PlayerGui:FindFirstChild("HUD_All")then pl.PlayerGui.HUD_All:Destroy()end
+	local function mk(c,pa,r)local o=_N(c,pa)for k,v in pairs(r or{})do o[k]=v end return o end
+	local SG=mk("ScreenGui",pl.PlayerGui,{Name="HUD_All",ResetOnSpawn=false})
+	local F=mk("Frame",SG,{Size=_U(0,150,0,24),Position=_U(0.5,-75,0,20),BackgroundColor3=_C(15,15,20),Active=true,Draggable=true})
+	mk("UICorner",F,{CornerRadius=UDim.new(0,6)})
+	mk("UIStroke",F,{Color=_C(0,170,255),Thickness=1.5})
+	local T=mk("TextLabel",F,{Size=_U(1,-24,1,0),Position=_U(0,8,0,0),BackgroundTransparency=1,TextColor3=_C(0,170,255),Font=_GB,TextSize=12,TextXAlignment=Enum.TextXAlignment.Left})
+	local X=mk("TextButton",F,{Size=_U(0,24,1,0),Position=_U(1,-24,0,0),BackgroundTransparency=1,Text="❌",TextSize=9,TextColor3=_C(200,200,200)})
+	X.MouseButton1Click:Connect(function()SG:Destroy()end)
+	local c;c=game:GetService("RunService").RenderStepped:Connect(function(d)
+		if not T.Parent then c:Disconnect();return end
+		local ping="0"
+		pcall(function()ping=string.match(ST.Network.ServerStatsItem["Data Ping"]:GetValueString(),"%d+")or"0"end)
+		T.Text="FPS: "..math.round(1/d).." | Ping: "..ping.."ms"
+	end)
+end
+
+-- Hook stats command ke GUI
+local function _hookStats()
+	for _,e in ipairs(getgenv().DeltaCmds.Cmds)do
+		for _,a in ipairs(e.aliases)do
+			if a=="stats"then
+				local o=e.fn
+				e.fn=function()makeStatsGui();o()end
+				return
+			end
+		end
+	end
+end
+_hookStats()
+
+-- Hook vehiclefly HUD
+local _vfEntry=nil
+for _,e in ipairs(getgenv().DeltaCmds.Cmds)do
+	for _,a in ipairs(e.aliases)do
+		if a=="vehiclefly"then _vfEntry=e;break end
+	end
+end
+if _vfEntry and _vfEntry.hud=="speed"then
+	local _vfHud=makeHUD("VFly",_vfEntry.hudDefault or 50,
+		function(spd) if getgenv().DeltaCmds.startVf then getgenv().DeltaCmds.startVf(spd)end end,
+		function() if getgenv().DeltaCmds.stopVf then getgenv().DeltaCmds.stopVf()end end,
+		80)
+	for _,e in ipairs(getgenv().DeltaCmds.Cmds)do
+		for _,a in ipairs(e.aliases)do
+			if a=="vehiclefly"then e.fn=function(v)_vfHud.show(tonumber(v)or 50)end end
+			if a=="unvehiclefly"then e.fn=function()_vfHud.hide()end end
+		end
+	end
+end
+
 local aliasMap = {}
 for _, entry in ipairs(getgenv().DeltaCmds.Cmds) do
 	for _, alias in ipairs(entry.aliases) do
