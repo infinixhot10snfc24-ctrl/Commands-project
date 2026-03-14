@@ -2,7 +2,6 @@ repeat task.wait() until getgenv().DeltaCmds and getgenv().DeltaCmds.Cmds
 local p=game.Players.LocalPlayer
 local rs=game:GetService("RunService")
 local cam=workspace.CurrentCamera
-
 local wfConn=nil
 local function startWf()
 	if wfConn then return end
@@ -24,7 +23,6 @@ end
 local function stopWf()
 	if wfConn then wfConn:Disconnect();wfConn=nil end
 end
-
 local saOld=nil
 local function startSa()
 	if saOld then return end
@@ -65,8 +63,6 @@ local function startSa()
 		return saOld(self,key)
 	end))
 end
-
-
 local tpwConn=nil
 local function startTpw(spd)
 	if tpwConn then tpwConn:Disconnect() end
@@ -86,7 +82,6 @@ end
 local function stopTpw()
 	if tpwConn then tpwConn:Disconnect();tpwConn=nil end
 end
-
 local vfConn=nil
 local vfCharConn=nil
 local function stopVf()
@@ -130,7 +125,6 @@ getgenv().DeltaCmds.startVf=function(spd)
 	vfCharConn=p.CharacterAdded:Connect(doFly)
 end
 getgenv().DeltaCmds.stopVf=stopVf
-
 local function startReach(sz)
 	local size=tonumber(sz)or 25
 	local char=p.Character
@@ -145,11 +139,9 @@ local function startReach(sz)
 	tool.Handle.Massless=true
 	tool.Handle.Size=Vector3.new(size,size,size)
 end
-
 local function startStats()
 	getgenv().DeltaCmds._showStats=true
 end
-
 local newCmds={
 	{aliases={"walkfling","wf"},              fn=function() startWf() end},
 	{aliases={"unwalkfling","unwf"},          fn=function() stopWf() end},
@@ -171,3 +163,100 @@ end
 for i,entry in ipairs(newCmds)do
 	table.insert(cmds,insertAt+i-1,entry)
 end
+local function callCmd(alias,arg)
+	for _,e in ipairs(getgenv().DeltaCmds.Cmds)do
+		for _,a in ipairs(e.aliases)do
+			if a==alias then e.fn(arg);return true end
+		end
+	end
+	return false
+end
+local CMDS={
+	fly=function(arg) callCmd("fly",arg) end,
+	unfly=function() callCmd("unfly") end,
+	vfly=function(arg) callCmd("vehiclefly",arg) end,
+	unvfly=function() callCmd("unvehiclefly") end,
+	nc=function() callCmd("noclip") end,
+	unnc=function() callCmd("unnoclip") end,
+	noclip=function() callCmd("noclip") end,
+	unnoclip=function() callCmd("unnoclip") end,
+	ws=function(arg) callCmd("walkspeed",arg) end,
+	lockws=function(arg) callCmd("lockwalkspeed",arg) end,
+	unlockws=function() callCmd("unlockwalkspeed") end,
+	loopws=function(arg) callCmd("loopwalkspeed",arg) end,
+	unloopws=function() callCmd("unloopwalkspeed") end,
+	jp=function(arg) callCmd("jumppower",arg) end,
+	lockjp=function(arg) callCmd("lockjumppower",arg) end,
+	unlockjp=function() callCmd("unlockjumppower") end,
+	tp=function(arg) callCmd("goto",arg) end,
+	fov=function(arg) callCmd("fov",arg) end,
+	maxzoom=function(arg) callCmd("maxzoom",arg) end,
+	rj=function() callCmd("rejoin") end,
+	respawn=function() callCmd("respawn") end,
+	spin=function(arg) callCmd("spin",arg) end,
+	unspin=function() callCmd("unspin") end,
+	infjump=function() callCmd("infjump") end,
+	uninfjump=function() callCmd("uninfjump") end,
+	fb=function() callCmd("fullbright") end,
+	unfb=function() callCmd("unfullbright") end,
+	fling=function(arg) callCmd("fling",arg) end,
+	esp=function(arg) callCmd("esp",arg) end,
+	unesp=function() callCmd("unesp") end,
+	cpos=function() callCmd("copypos") end,
+	ctp=function() callCmd("clicktp") end,
+	uctp=function() callCmd("unclicktp") end,
+	aafk=function() callCmd("antiafk") end,
+	fixcam=function() callCmd("fixcam") end,
+	hb=function(arg) callCmd("hitbox",arg) end,
+	unhb=function() callCmd("unhitbox") end,
+	god=function() callCmd("godmode") end,
+	ungod=function() callCmd("ungodmode") end,
+	view=function(arg) callCmd("view",arg) end,
+	unview=function() callCmd("unview") end,
+	fc=function(arg) callCmd("freecam",arg) end,
+	unfc=function() callCmd("unfreecam") end,
+	nofog=function() callCmd("nofog") end,
+	unnofog=function() callCmd("unnofog") end,
+	antifling=function() callCmd("antifling") end,
+	unantifling=function() callCmd("unantifling") end,
+	freeze=function() callCmd("freeze") end,
+	unfreeze=function() callCmd("unfreeze") end,
+	antikick=function() callCmd("antikick") end,
+	unantikick=function() callCmd("unantikick") end,
+	shop=function() callCmd("serverhop") end,
+	sshop=function() callCmd("smallserverhop") end,
+	aimlock=function(arg) callCmd("aimlock",arg) end,
+	unaimlock=function() callCmd("unaimlock") end,
+	noeffect=function() callCmd("noeffect") end,
+	avis=function() callCmd("antiinvisible") end,
+	ac=function() callCmd("autoclicker") end,
+	unac=function() callCmd("unautoclicker") end,
+	wf=function() callCmd("walkfling") end,
+	unwf=function() callCmd("unwalkfling") end,
+	sa=function() callCmd("silentaim") end,
+	tpwalk=function(arg) callCmd("tpwalk",arg) end,
+	untpwalk=function() callCmd("untpwalk") end,
+	reach=function(arg) callCmd("reach",arg) end,
+	stats=function() callCmd("stats") end,
+}
+local adminActive=false
+local adminChatConn=nil
+local function startAdmin()
+	if adminActive then return end
+	adminActive=true
+	adminChatConn=p.Chatted:Connect(function(msg)
+		if msg:sub(1,1)~="/"then return end
+		local parts=msg:sub(2):split(" ")
+		local key=parts[1]:lower()
+		local arg=parts[2]
+		if CMDS[key]then CMDS[key](arg)end
+	end)
+end
+local adminInsertAt=#cmds
+for i,e in ipairs(cmds)do
+	if e.aliases[1]=="commands"then adminInsertAt=i;break end
+end
+table.insert(cmds,adminInsertAt,{
+	aliases={"admin"},
+	fn=function()startAdmin()end,
+})
