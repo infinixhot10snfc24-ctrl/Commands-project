@@ -267,25 +267,7 @@ local function _hookStats()
 end
 _hookStats()
 
--- Hook vehiclefly HUD
-local _vfEntry=nil
-for _,e in ipairs(getgenv().DeltaCmds.Cmds)do
-	for _,a in ipairs(e.aliases)do
-		if a=="vehiclefly"then _vfEntry=e;break end
-	end
-end
-if _vfEntry and _vfEntry.hud=="speed"then
-	local _vfHud=makeHUD("VFly",_vfEntry.hudDefault or 50,
-		function(spd) if getgenv().DeltaCmds.startVf then getgenv().DeltaCmds.startVf(spd)end end,
-		function() if getgenv().DeltaCmds.stopVf then getgenv().DeltaCmds.stopVf()end end,
-		80)
-	for _,e in ipairs(getgenv().DeltaCmds.Cmds)do
-		for _,a in ipairs(e.aliases)do
-			if a=="vehiclefly"then e.fn=function(v)_vfHud.show(tonumber(v)or 50)end end
-			if a=="unvehiclefly"then e.fn=function()_vfHud.hide()end end
-		end
-	end
-end
+
 
 local aliasMap = {}
 for _, entry in ipairs(getgenv().DeltaCmds.Cmds) do
