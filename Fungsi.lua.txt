@@ -168,10 +168,15 @@ local function startLoopws(spd)
 	getgenv().SpeedSettings.Locked = false
 	if lockwsCharConn then lockwsCharConn:Disconnect(); lockwsCharConn = nil end
 	if loopwsConn then loopwsConn:Disconnect(); loopwsConn = nil end
+	local _lwsChar, _lwsHum = nil, nil
+	p.CharacterAdded:Connect(function(c) _lwsChar=c; _lwsHum=nil end)
 	loopwsConn = rs.Heartbeat:Connect(function()
 		local char = p.Character
-		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		if hum and hum.WalkSpeed ~= spd then hum.WalkSpeed = spd end
+		if char ~= _lwsChar then _lwsChar=char; _lwsHum=nil end
+		if not _lwsHum or not _lwsHum.Parent then
+			_lwsHum = char and char:FindFirstChildOfClass("Humanoid")
+		end
+		if _lwsHum and _lwsHum.WalkSpeed ~= spd then _lwsHum.WalkSpeed = spd end
 	end)
 end
 local function stopLoopws()
@@ -300,7 +305,7 @@ local function attachEsp(target)
 		if not char then return end
 		local hl = Instance.new("Highlight", espFolder)
 		hl.FillColor = Color3.fromRGB(0, 255, 255)
-		hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+		hl.OutlineColor = Color3.new(1,1,1)
 		hl.Adornee = char
 		data.items[#data.items+1] = hl
 		local hrp = char:WaitForChild("HumanoidRootPart", 5)
