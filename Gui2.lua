@@ -1,0 +1,317 @@
+
+repeat task.wait() until getgenv().DeltaCmds
+	and getgenv().DeltaCmds.Cmds
+	and getgenv().DeltaCmds.Pickers
+
+local ts  = game:GetService("TweenService")
+local _C  = Color3.fromRGB
+local _U  = UDim2.new
+local _N  = Instance.new
+local _GB = Enum.Font.GothamBold
+local _GS = Enum.Font.GothamSemibold
+
+local sg = _N("ScreenGui", game.CoreGui)
+sg.Name = "DeltaGui2"
+sg.ResetOnSpawn = false
+sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+sg.IgnoreGuiInset = true
+
+local pickerOpen = false
+
+local overlay = _N("Frame", sg)
+overlay.Size = _U(1,0,1,0)
+overlay.BackgroundTransparency = 1
+overlay.BackgroundColor3 = _C(0,0,0)
+overlay.ZIndex = 20
+overlay.Visible = false
+
+local pickerFrame = _N("Frame", overlay)
+pickerFrame.Size = _U(0,0,0,0)
+pickerFrame.Position = _U(0.5,0,0.42,0)
+pickerFrame.AnchorPoint = Vector2.new(0.5,0.5)
+pickerFrame.BackgroundColor3 = _C(13,13,18)
+pickerFrame.ClipsDescendants = true
+pickerFrame.ZIndex = 21
+_N("UICorner", pickerFrame).CornerRadius = UDim.new(0,16)
+local pfStroke = _N("UIStroke", pickerFrame)
+pfStroke.Color = _C(0,170,255); pfStroke.Thickness = 1.5
+local pfGrad = _N("UIGradient", pickerFrame)
+pfGrad.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, _C(20,20,30)),
+	ColorSequenceKeypoint.new(1, _C(13,13,18)),
+}
+pfGrad.Rotation = 90
+local titleLabel = _N("TextLabel", pickerFrame)
+titleLabel.Size = _U(1,-40,0,36)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = ""
+titleLabel.TextColor3 = _C(255,255,255)
+titleLabel.Font = _GB
+titleLabel.TextSize = 13
+titleLabel.ZIndex = 22
+local titleGrad = _N("UIGradient", titleLabel)
+titleGrad.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, _C(255,255,255)),
+	ColorSequenceKeypoint.new(1, _C(0,170,255)),
+}
+titleGrad.Rotation = 0
+local closeBtn = _N("TextButton", pickerFrame)
+closeBtn.Size = _U(0,26,0,26)
+closeBtn.Position = _U(1,-32,0,5)
+closeBtn.AnchorPoint = Vector2.new(1,0)
+closeBtn.BackgroundColor3 = _C(50,15,15)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = _C(255,80,80)
+closeBtn.Font = _GB
+closeBtn.TextSize = 13
+closeBtn.AutoButtonColor = false
+closeBtn.ZIndex = 26
+_N("UICorner", closeBtn).CornerRadius = UDim.new(0,8)
+local closeTw = TweenInfo.new(0.12)
+closeBtn.MouseEnter:Connect(function()
+	ts:Create(closeBtn, closeTw, {BackgroundColor3 = _C(90,20,20)}):Play()
+end)
+closeBtn.MouseLeave:Connect(function()
+	ts:Create(closeBtn, closeTw, {BackgroundColor3 = _C(50,15,15)}):Play()
+end)
+local divider = _N("Frame", pickerFrame)
+divider.Size = _U(1,-32,0,1)
+divider.Position = _U(0,16,0,36)
+divider.BackgroundColor3 = _C(40,40,55)
+divider.BorderSizePixel = 0
+divider.ZIndex = 22
+local btnContainer = _N("Frame", pickerFrame)
+btnContainer.Size = _U(1,-32,0,70)
+btnContainer.Position = _U(0,16,0,45)
+btnContainer.BackgroundTransparency = 1
+btnContainer.ZIndex = 22
+local btnLayout = _N("UIListLayout", btnContainer)
+btnLayout.FillDirection = Enum.FillDirection.Horizontal
+btnLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+btnLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+btnLayout.Padding = UDim.new(0,14)
+local subtitleLabel = _N("TextLabel", pickerFrame)
+subtitleLabel.Size = _U(1,0,0,20)
+subtitleLabel.Position = _U(0,0,1,-22)
+subtitleLabel.BackgroundTransparency = 1
+subtitleLabel.Text = ""
+subtitleLabel.TextColor3 = _C(60,60,80)
+subtitleLabel.Font = _GS
+subtitleLabel.TextSize = 10
+subtitleLabel.ZIndex = 22
+
+local function makePickerBtn(parent, label, sub, accent)
+	local btn = _N("TextButton", parent)
+	btn.Size = _U(0,148,0,62)
+	btn.BackgroundColor3 = _C(18,18,26)
+	btn.AutoButtonColor = false
+	btn.Text = ""
+	btn.ZIndex = 23
+	_N("UICorner", btn).CornerRadius = UDim.new(0,12)
+	local bs = _N("UIStroke", btn); bs.Color = accent; bs.Thickness = 1.2
+
+	local icon = _N("TextLabel", btn)
+	icon.Size = _U(1,0,0,28); icon.Position = _U(0,0,0,8)
+	icon.BackgroundTransparency = 1
+	icon.Text = label; icon.TextColor3 = _C(255,255,255)
+	icon.Font = _GB; icon.TextSize = 12; icon.ZIndex = 24
+
+	local subL = _N("TextLabel", btn)
+	subL.Size = _U(1,-16,0,18); subL.Position = _U(0,8,0,34)
+	subL.BackgroundTransparency = 1
+	subL.Text = sub; subL.TextColor3 = _C(120,120,140)
+	subL.Font = _GS; subL.TextSize = 10; subL.ZIndex = 24
+
+	local bar = _N("Frame", btn)
+	bar.Size = _U(1,-24,0,2); bar.Position = _U(0,12,1,-10)
+	bar.BackgroundColor3 = accent; bar.BorderSizePixel = 0; bar.ZIndex = 24
+	_N("UICorner", bar).CornerRadius = UDim.new(1,0)
+
+	local tw = TweenInfo.new(0.15)
+	btn.MouseEnter:Connect(function()
+		ts:Create(btn, tw, {BackgroundColor3 = _C(24,24,36)}):Play()
+		ts:Create(bs,  tw, {Thickness = 2}):Play()
+	end)
+	btn.MouseLeave:Connect(function()
+		ts:Create(btn, tw, {BackgroundColor3 = _C(18,18,26)}):Play()
+		ts:Create(bs,  tw, {Thickness = 1.2}):Play()
+	end)
+	return btn
+end
+
+local BTN_W, BTN_GAP, SIDE_PAD = 148, 14, 32
+local function calcWidth(n) return n * BTN_W + (n-1) * BTN_GAP + SIDE_PAD end
+
+local function showPicker(pickerDef, callback)
+	if pickerOpen then return end
+	pickerOpen = true
+
+	titleLabel.Text    = pickerDef.title    or ""
+	subtitleLabel.Text = pickerDef.subtitle or ""
+	for _, c in ipairs(btnContainer:GetChildren()) do
+		if c:IsA("TextButton") then c:Destroy() end
+	end
+	local items = {}
+	for _, def in ipairs(pickerDef.buttons) do
+		local b = makePickerBtn(btnContainer, def.label, def.sub, def.accent)
+		items[#items+1] = { btn = b, value = def.value }
+	end
+
+	local TARGET = _U(0, calcWidth(#pickerDef.buttons), 0, 140)
+	overlay.Visible  = true
+	pickerFrame.Size = _U(0,0,0,0)
+	ts:Create(overlay,     TweenInfo.new(0.2), {BackgroundTransparency = 0.6}):Play()
+	ts:Create(pickerFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = TARGET}):Play()
+
+	local conns = {}
+	local function pick(value)
+		if not pickerOpen then return end
+		pickerOpen = false
+		for _, c in ipairs(conns) do c:Disconnect() end
+		ts:Create(overlay,     TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+		ts:Create(pickerFrame, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = _U(0,0,0,0)}):Play()
+		task.delay(0.28, function()
+			overlay.Visible = false
+			callback(value)
+		end)
+	end
+
+	conns[#conns+1] = closeBtn.MouseButton1Click:Connect(function() pick(nil) end)
+	for _, item in ipairs(items) do
+		local v = item.value
+		conns[#conns+1] = item.btn.MouseButton1Click:Connect(function() pick(v) end)
+	end
+end
+
+
+local function makeACGui()
+	local UIS,GS=game:GetService("UserInputService"),game:GetService("GuiService")
+	local pl=game.Players.LocalPlayer
+	if pl.PlayerGui:FindFirstChild("AC_Panel")then pl.PlayerGui.AC_Panel:Destroy()end
+	local ac=getgenv().DeltaCmds.AC
+	if not ac then return end
+	local function mk(c,pa,r)local o=_N(c,pa)for k,v in pairs(r or{})do o[k]=v end return o end
+	local function cor(p,r)mk("UICorner",p,{CornerRadius=UDim.new(0,r or 6)})end
+	local function str(p,c,t)mk("UIStroke",p,{Color=c,Thickness=t or 1})end
+	local SG=mk("ScreenGui",pl.PlayerGui,{Name="AC_Panel",ResetOnSpawn=false})
+	local F=mk("Frame",SG,{Size=_U(0,180,0,195),Position=_U(0.5,-90,0.5,-97),BackgroundColor3=_C(25,25,25),Active=true,Draggable=true})
+	cor(F,8)str(F,_C(0,170,255),2)
+	mk("TextLabel",F,{Size=_U(1,0,0,30),BackgroundTransparency=1,Text="AUTO CLICKER",TextColor3=_C(0,170,255),Font=_GB,TextSize=14})
+	local X=mk("TextButton",F,{Size=_U(0,30,0,30),Position=_U(1,-30,0,0),BackgroundTransparency=1,Text="❌",TextSize=11,TextColor3=_C(200,200,200)})
+	mk("Frame",F,{Size=_U(1,0,0,1),Position=_U(0,0,0,30),BackgroundColor3=_C(0,170,255),BorderSizePixel=0})
+	local GS2=Enum.Font.GothamSemibold
+	local MB=mk("TextButton",F,{Size=_U(0.9,0,0,25),Position=_U(0.05,0,0,40),BackgroundColor3=_C(35,35,35),Text="Mode: Mobile",TextColor3=_C(255,255,255),Font=GS2,TextSize=13})
+	cor(MB)local mS=mk("UIStroke",MB,{Color=_C(100,100,100),Thickness=1})
+	local SB=mk("TextBox",F,{Size=_U(0.9,0,0,25),Position=_U(0.05,0,0,72),BackgroundColor3=_C(20,20,20),Text="0.3",PlaceholderText="Delay (0.3)",TextColor3=_C(220,220,220),Font=GS2,TextSize=13})
+	cor(SB)str(SB,_C(60,60,80))
+	local PB=mk("TextButton",F,{Size=_U(0.9,0,0,32),Position=_U(0.05,0,0,105),BackgroundColor3=_C(35,35,35),Text="Set Target",TextColor3=_C(220,220,220),Font=GS2,TextSize=13})
+	cor(PB)
+	local S=mk("TextButton",F,{Size=_U(0.9,0,0,36),Position=_U(0.05,0,0,145),BackgroundColor3=_C(220,70,70),Text="OFF",TextColor3=_C(255,255,255),Font=_GB,TextSize=18})
+	cor(S)local bS=mk("UIStroke",S,{Color=_C(220,70,70),Thickness=1.5})
+	local M=mk("Frame",SG,{Size=_U(0,14,0,14),BackgroundColor3=_C(80,220,120),Visible=false,AnchorPoint=Vector2.new(0.5,0.5)})
+	cor(M,99)str(M,_C(0,0,0))
+	local picking=false
+	X.MouseButton1Click:Connect(function()ac.active=false;SG:Destroy()end)
+	MB.MouseButton1Click:Connect(function()ac.mode=ac.mode=="Mobile"and"PC"or"Mobile";MB.Text="Mode: "..ac.mode;mS.Color=ac.mode=="PC"and _C(0,170,255)or _C(100,100,100)end)
+	SB.FocusLost:Connect(function()local v=tonumber(SB.Text);ac.delay=(v and v>=0)and v or ac.delay;SB.Text=tostring(ac.delay)end)
+	PB.MouseButton1Click:Connect(function()picking=true;PB.Text="Tap/Click Target...";PB.TextColor3=_C(0,170,255)end)
+	UIS.InputBegan:Connect(function(i,g)
+		if picking and not g and(i.UserInputType.Name=="Touch"or i.UserInputType.Name=="MouseButton1")then
+			ac.target=Vector2.new(i.Position.X,i.Position.Y+GS:GetGuiInset().Y)
+			M.Position=_U(0,i.Position.X,0,i.Position.Y);M.Visible=true;picking=false
+			PB.Text="Target Locked";PB.TextColor3=_C(220,220,220)
+		end
+	end)
+	S.MouseButton1Click:Connect(function()
+		ac.active=not ac.active
+		S.Text=ac.active and"ON"or"OFF"
+		S.BackgroundColor3=ac.active and _C(80,220,120)or _C(220,70,70)
+		bS.Color=ac.active and _C(80,220,120)or _C(220,70,70)
+		if ac.active then for _,e in ipairs(getgenv().DeltaCmds.Cmds)do for _,a in ipairs(e.aliases)do if a=="autoclicker"then e.fn();break end end end end
+	end)
+end
+local function _hookAC()for _,e in ipairs(getgenv().DeltaCmds.Cmds)do for _,a in ipairs(e.aliases)do if a=="autoclicker"then local o=e.fn;e.fn=function()makeACGui();o()end;return end end end end
+_hookAC()
+
+local function makeStatsGui()
+	local ST=game:GetService("Stats")
+	local pl=game.Players.LocalPlayer
+	if pl.PlayerGui:FindFirstChild("HUD_All")then pl.PlayerGui.HUD_All:Destroy()end
+	local function mk(c,pa,r)local o=_N(c,pa)for k,v in pairs(r or{})do o[k]=v end return o end
+	local SG=mk("ScreenGui",pl.PlayerGui,{Name="HUD_All",ResetOnSpawn=false})
+	local F=mk("Frame",SG,{Size=_U(0,150,0,24),Position=_U(0.5,-75,0,20),BackgroundColor3=_C(15,15,20),Active=true,Draggable=true})
+	mk("UICorner",F,{CornerRadius=UDim.new(0,6)})
+	mk("UIStroke",F,{Color=_C(0,170,255),Thickness=1.5})
+	local T=mk("TextLabel",F,{Size=_U(1,-24,1,0),Position=_U(0,8,0,0),BackgroundTransparency=1,TextColor3=_C(0,170,255),Font=_GB,TextSize=12,TextXAlignment=Enum.TextXAlignment.Left})
+	local X=mk("TextButton",F,{Size=_U(0,24,1,0),Position=_U(1,-24,0,0),BackgroundTransparency=1,Text="❌",TextSize=9,TextColor3=_C(200,200,200)})
+	X.MouseButton1Click:Connect(function()SG:Destroy()end)
+	local c;c=game:GetService("RunService").RenderStepped:Connect(function(d)
+		if not T.Parent then c:Disconnect();return end
+		local ping="0"
+		pcall(function()ping=string.match(ST.Network.ServerStatsItem["Data Ping"]:GetValueString(),"%d+")or"0"end)
+		T.Text="FPS: "..math.round(1/d).." | Ping: "..ping.."ms"
+	end)
+end
+
+-- Hook stats command ke GUI
+local function _hookStats()
+	for _,e in ipairs(getgenv().DeltaCmds.Cmds)do
+		for _,a in ipairs(e.aliases)do
+			if a=="stats"then
+				local o=e.fn
+				e.fn=function()makeStatsGui();o()end
+				return
+			end
+		end
+	end
+end
+_hookStats()
+
+-- Hook vehiclefly HUD
+local _vfEntry=nil
+for _,e in ipairs(getgenv().DeltaCmds.Cmds)do
+	for _,a in ipairs(e.aliases)do
+		if a=="vehiclefly"then _vfEntry=e;break end
+	end
+end
+if _vfEntry and _vfEntry.hud=="speed"then
+	local _vfHud=getgenv().DeltaCmds._makeHUD("VFly",_vfEntry.hudDefault or 50,
+		function(spd) if getgenv().DeltaCmds.startVf then getgenv().DeltaCmds.startVf(spd)end end,
+		function() if getgenv().DeltaCmds.stopVf then getgenv().DeltaCmds.stopVf()end end,
+		80)
+	for _,e in ipairs(getgenv().DeltaCmds.Cmds)do
+		for _,a in ipairs(e.aliases)do
+			if a=="vehiclefly"then e.fn=function(v)_vfHud.show(tonumber(v)or 50)end end
+			if a=="unvehiclefly"then e.fn=function()_vfHud.hide()end end
+		end
+	end
+end
+
+local aliasMap = {}
+for _, entry in ipairs(getgenv().DeltaCmds.Cmds) do
+	for _, alias in ipairs(entry.aliases) do
+		aliasMap[alias] = entry
+	end
+end
+
+for _, pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do
+	local cmdEntry = aliasMap[pickerDef.cmdAlias]
+	if cmdEntry then
+		cmdEntry.fn = function()
+			task.delay(0.32, function()
+				showPicker(pickerDef, function(value)
+					if value ~= nil then
+						pickerDef.onPick(value)
+					end
+				end)
+			end)
+		end
+	end
+
+	if pickerDef.stopAlias and pickerDef.stopFn then
+		local stopEntry = aliasMap[pickerDef.stopAlias]
+		if stopEntry then
+			stopEntry.fn = pickerDef.stopFn
+		end
+	end
+end
