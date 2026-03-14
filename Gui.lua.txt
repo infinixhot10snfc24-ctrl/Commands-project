@@ -2,9 +2,9 @@ local p = game.Players.LocalPlayer
 local ts = game:GetService("TweenService")
 local uis = game:GetService("UserInputService")
 local _C=Color3.fromRGB;local _U=UDim2.new;local _N=Instance.new;local _GB=Enum.Font.GothamBold;local _GS=Enum.Font.GothamSemibold;local _G=Enum.Font.Gotham;local _TX=Enum.TextXAlignment;local _UI=Enum.UserInputType
-local MAX_SUGG = 5
-local ITEM_H = 28
-local ITEM_PAD = 2
+local MAX_SUGG = 6
+local ITEM_H = 36
+local ITEM_PAD = 3
 local sg = _N("ScreenGui", game.CoreGui)
 sg.ResetOnSpawn = false
 sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -61,13 +61,13 @@ btn.MouseLeave:Connect(function()
 end)
 makeDraggable(btnContainer, btn)
 local cmdFrame = _N("Frame", sg)
-cmdFrame.Size = _U(0, 0, 0, 38)
+cmdFrame.Size = _U(0, 0, 0, 48)
 cmdFrame.Position = _U(0.5, 0, 0.5, 0)
 cmdFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 cmdFrame.BackgroundColor3 = _C(13, 13, 18)
 cmdFrame.ClipsDescendants = true
 cmdFrame.Visible = false
-_N("UICorner", cmdFrame).CornerRadius = UDim.new(0, 19)
+_N("UICorner", cmdFrame).CornerRadius = UDim.new(0, 24)
 local s2 = _N("UIStroke", cmdFrame)
 s2.Color = _C(0, 120, 200)
 s2.Thickness = 1.5
@@ -78,31 +78,31 @@ ColorSequenceKeypoint.new(1, _C(10, 10, 18)),
 }
 cmdGrad.Rotation = 90
 local cmdIcon = _N("TextLabel", cmdFrame)
-cmdIcon.Size = _U(0, 30, 1, 0)
+cmdIcon.Size = _U(0, 36, 1, 0)
 cmdIcon.Position = _U(0, 8, 0, 0)
 cmdIcon.BackgroundTransparency = 1
 cmdIcon.Text = "⌘"
 cmdIcon.TextColor3 = _C(0, 170, 255)
 cmdIcon.Font = _GB
-cmdIcon.TextSize = 15
+cmdIcon.TextSize = 18
 local box = _N("TextBox", cmdFrame)
-box.Size = _U(1, -44, 1, 0)
-box.Position = _U(0, 34, 0, 0)
+box.Size = _U(1, -50, 1, 0)
+box.Position = _U(0, 40, 0, 0)
 box.BackgroundTransparency = 1
 box.TextColor3 = _C(220, 220, 220)
 box.PlaceholderText = "ketik command..."
 box.PlaceholderColor3 = _C(80, 80, 100)
 box.Font = _GS
-box.TextSize = 13
+box.TextSize = 15
 box.TextXAlignment = _TX.Left
 local suggFrame = _N("Frame", sg)
-suggFrame.Size = _U(0, 260, 0, 0)
-suggFrame.Position = _U(0.5, 0, 0.5, -22)
+suggFrame.Size = _U(0, 320, 0, 0)
+suggFrame.Position = _U(0.5, 0, 0.5, -26)
 suggFrame.AnchorPoint = Vector2.new(0.5, 1)
 suggFrame.BackgroundColor3 = _C(15, 15, 20)
 suggFrame.ClipsDescendants = true
 suggFrame.Visible = false
-_N("UICorner", suggFrame).CornerRadius = UDim.new(0, 10)
+_N("UICorner", suggFrame).CornerRadius = UDim.new(0, 12)
 local sSugg = _N("UIStroke", suggFrame)
 sSugg.Color = _C(0, 100, 180)
 sSugg.Thickness = 1
@@ -115,13 +115,13 @@ item.Size = _U(1, 0, 0, ITEM_H)
 item.BackgroundTransparency = 1
 item.TextColor3 = _C(0, 170, 255)
 item.Font = _GS
-item.TextSize = 13
+item.TextSize = 15
 item.TextXAlignment = _TX.Left
 item.AutoButtonColor = false
 item.Text = ""
 item.Visible = false
 item.LayoutOrder = i
-_N("UIPadding", item).PaddingLeft = UDim.new(0, 12)
+_N("UIPadding", item).PaddingLeft = UDim.new(0, 14)
 item.MouseEnter:Connect(function()
 item.BackgroundTransparency = 0.75
 item.BackgroundColor3 = _C(0, 80, 180)
@@ -492,7 +492,7 @@ for i = count + 1, MAX_SUGG do
 suggItems[i].Text = ""
 suggItems[i].Visible = false
 end
-suggFrame.Size = _U(0, 260, 0, count * ITEM_H + (count - 1) * ITEM_PAD)
+suggFrame.Size = _U(0, 320, 0, count * ITEM_H + (count - 1) * ITEM_PAD)
 suggFrame.Visible = true
 end
 local function populateList(filter)
@@ -555,7 +555,7 @@ local function closeCmd(input)
 	cmdOpen = false
 	box.Text = ""
 	suggFrame.Visible = false
-	ts:Create(cmdFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = _U(0, 0, 0, 38)}):Play()
+	ts:Create(cmdFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = _U(0, 0, 0, 48)}):Play()
 	task.delay(0.25, function()
 		cmdFrame.Visible = false
 		btnContainer.Visible = true
@@ -567,7 +567,7 @@ btn.MouseButton1Click:Connect(function()
 	cmdOpen = true
 	btnContainer.Visible = false
 	cmdFrame.Visible = true
-	cmdFrame.Size = _U(0, 0, 0, 38)
+	cmdFrame.Size = _U(0, 0, 0, 48)
 	ts:Create(cmdFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Size = _U(0, 260, 0, 38)}):Play()
 	task.delay(0.1, function()
 		box:CaptureFocus()
