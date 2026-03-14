@@ -1,17 +1,14 @@
 repeat task.wait() until getgenv().DeltaCmds and getgenv().DeltaCmds.Cmds
 local p = game.Players.LocalPlayer
 local rs = game:GetService("RunService")
-local uis = game:GetService("UserInputService")
 local lighting = game:GetService("Lighting")
 local cam = workspace.CurrentCamera
 local vwConn = nil
 local viewRemoveConn = nil
-local fcConn, fcInputConn, fcCharConn = nil, nil, nil
-local fcActive = false
-local freecamCF = nil
+local fcConn = nil
+local fcCharConn = nil
+local fcPart = nil
 local antiflingConn = nil
-local isMobile = uis.TouchEnabled and not uis.KeyboardEnabled
-local touchRotStart = nil
 local function stopVw()
 	if vwConn then vwConn:Disconnect(); vwConn = nil end
 	if viewRemoveConn then viewRemoveConn:Disconnect(); viewRemoveConn = nil end
@@ -43,126 +40,43 @@ local function startVw(name)
 		if pl == target then stopVw() end
 	end)
 end
-local _up = Vector3.new(0,1,0)
 local function stopFc()
-	fcActive = false
 	if fcConn then fcConn:Disconnect(); fcConn = nil end
 	if fcCharConn then fcCharConn:Disconnect(); fcCharConn = nil end
-	if fcInputConn then fcInputConn:Disconnect(); fcInputConn = nil end
-	touchRotStart = nil
+	if fcPart then fcPart:Destroy(); fcPart = nil end
 	cam.CameraType = Enum.CameraType.Custom
 	local char = p.Character
-	if not char then return end
-	local hum = char:FindFirstChildOfClass("Humanoid")
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
 	if hum then cam.CameraSubject = hum end
-	local root = char:FindFirstChild("HumanoidRootPart")
-	if root then
-		local bv = root:FindFirstChild("FreecamFreeze")
-		if bv then bv:Destroy() end
-	end
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	if root then root.Anchored = false end
 end
 local function startFc(spd)
 	stopFc()
-	fcActive = true
-	cam.CameraType = Enum.CameraType.Scriptable
-	freecamCF = cam.CFrame
-	local speed = spd or 1
-	local function applyFreezeBV(char)
-		local root = char and char:FindFirstChild("HumanoidRootPart")
-		if root then
-			local bv = Instance.new("BodyVelocity", root)
-			bv.Name = "FreecamFreeze"
-			bv.Velocity = Vector3.zero
-			bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+	local speed = spd or 50
+	local part = Instance.new("Part")
+	part.Anchored = true
+	part.CanCollide = false
+	part.Transparency = 1
+	part.CFrame = cam.CFrame
+	part.Parent = workspace
+	fcPart = part
+	cam.CameraSubject = part
+	local char = p.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	if root then root.Anchored = true end
+	local ctrls = getgenv().DeltaCmds.ctrls
+	fcConn = rs.RenderStepped:Connect(function()
+		local mv = ctrls:GetMoveVector()
+		local move = (cam.CFrame.LookVector * -mv.Z) + (cam.CFrame.RightVector * mv.X)
+		if move.Magnitude > 0 then
+			part.CFrame = part.CFrame + (move * (speed * 0.06))
 		end
-	end
-	if p.Character then applyFreezeBV(p.Character) end
-	fcCharConn = p.CharacterAdded:Connect(applyFreezeBV)
-	fcConn = rs.RenderStepped:Connect(function(dt)
-		if not fcActive then return end
-		cam.CameraType = Enum.CameraType.Scriptable
-		local cf = freecamCF
-		local move = Vector3.zero
-		if isMobile then
-			local spd2 = speed
-			local mv = getgenv().DeltaCmds.ctrls:GetMoveVector()
-			if mv.Magnitude > 0.01 then
-				move += cf.LookVector * -mv.Z + cf.RightVector * mv.X
-			end
-			if move.Magnitude > 0 then
-				freecamCF = CFrame.new(cf.Position + move.Unit * spd2 * 60 * dt) * (cf - cf.Position)
-			end
-		else
-			local spd2 = speed * (uis:IsKeyDown(Enum.KeyCode.LeftShift) and 3 or 1)
-			if uis:IsKeyDown(Enum.KeyCode.W) then move += cf.LookVector end
-			if uis:IsKeyDown(Enum.KeyCode.S) then move -= cf.LookVector end
-			if uis:IsKeyDown(Enum.KeyCode.A) then move -= cf.RightVector end
-			if uis:IsKeyDown(Enum.KeyCode.D) then move += cf.RightVector end
-			if uis:IsKeyDown(Enum.KeyCode.E) or uis:IsKeyDown(Enum.KeyCode.Space) then move += _up end
-			if uis:IsKeyDown(Enum.KeyCode.Q) then move -= _up end
-			if move.Magnitude > 0 then
-				freecamCF = CFrame.new(cf.Position + move.Unit * spd2 * 60 * dt) * (cf - cf.Position)
-			end
-		end
-		cam.CFrame = freecamCF
 	end)
-	if isMobile then
-		local screenSize = cam.ViewportSize
-		local rightHalf = screenSize.X / 2
-		fcInputConn = uis.InputChanged:Connect(function(input)
-			if not fcActive then return end
-			if input.UserInputType == Enum.UserInputType.Touch then
-				local pos = input.Position
-				if pos.X >= rightHalf then
-					if touchRotStart then
-						local dx = -(pos.X - touchRotStart.X) * 0.004
-						local dy = -(pos.Y - touchRotStart.Y) * 0.004
-						local cf = freecamCF
-						freecamCF = CFrame.new(cf.Position)
-							* CFrame.Angles(0, dx, 0)
-							* (cf - cf.Position)
-							* CFrame.Angles(dy, 0, 0)
-						touchRotStart = Vector2.new(pos.X, pos.Y)
-					end
-				end
-			end
-		end)
-		local touchStartConn = uis.TouchStarted:Connect(function(input)
-			if not fcActive then return end
-			local pos = input.Position
-			if pos.X >= rightHalf then
-				touchRotStart = Vector2.new(pos.X, pos.Y)
-			end
-		end)
-		local touchEndConn = uis.TouchEnded:Connect(function(input)
-			if not fcActive then return end
-			local pos = input.Position
-			if pos.X >= rightHalf then
-				touchRotStart = nil
-			end
-		end)
-		local oldInputConn = fcInputConn
-		fcInputConn = {
-			Disconnect = function()
-				if oldInputConn then oldInputConn:Disconnect() end
-				touchStartConn:Disconnect()
-				touchEndConn:Disconnect()
-			end
-		}
-	else
-		fcInputConn = uis.InputChanged:Connect(function(input)
-			if not fcActive then return end
-			if input.UserInputType == Enum.UserInputType.MouseMovement then
-				local dx = -input.Delta.X * 0.003
-				local dy = -input.Delta.Y * 0.003
-				local cf = freecamCF
-				freecamCF = CFrame.new(cf.Position)
-					* CFrame.Angles(0, dx, 0)
-					* (cf - cf.Position)
-					* CFrame.Angles(dy, 0, 0)
-			end
-		end)
-	end
+	fcCharConn = p.CharacterAdded:Connect(function(c)
+		local r = c:WaitForChild("HumanoidRootPart", 5)
+		if r then r.Anchored = true end
+	end)
 end
 local origFog = lighting.FogEnd
 local nfActive = false
