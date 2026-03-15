@@ -25,7 +25,6 @@ end)
 end
 end)
 handle.InputChanged:Connect(function(input)
--- Hanya proses input yang sama dengan yang mulai drag
 if dragInput and input == dragInput then
 local delta = input.Position - dragStart
 frame.Position = _U(
@@ -213,7 +212,6 @@ local active   = false
 local speed    = defaultSpd
 local expanded = false
 local tw       = TweenInfo.new(0.15, Enum.EasingStyle.Quad)
--- Frame utama — collapsed: 110x44, expanded: 110x90
 local frame = _N("Frame", sg)
 frame.Size = _U(0, 130, 0, 44)
 frame.Position = _U(1, -146, 0, 20 + yOff)
@@ -226,7 +224,6 @@ _N("UICorner", frame).CornerRadius = UDim.new(0, 12)
 local stroke = _N("UIStroke", frame)
 stroke.Color = COLOR_ON
 stroke.Thickness = 2
--- Row atas: nama + nilai speed
 local nameLabel = _N("TextLabel", frame)
 nameLabel.Size = _U(1, -64, 0, 44)
 nameLabel.Position = _U(0, 10, 0, 0)
@@ -247,7 +244,6 @@ speedLabel.Font = _GB
 speedLabel.TextSize = 11
 speedLabel.TextXAlignment = _TX.Center
 speedLabel.TextYAlignment = Enum.TextYAlignment.Center
--- Tombol +/- kecil di kanan
 local toggleBtn = _N("TextButton", frame)
 toggleBtn.Size = _U(0, 22, 0, 22)
 toggleBtn.Position = _U(1, -26, 0, 11)
@@ -259,7 +255,6 @@ toggleBtn.Font = _GB
 toggleBtn.TextSize = 13
 toggleBtn.ZIndex = 5
 _N("UICorner", toggleBtn).CornerRadius = UDim.new(0, 6)
--- Input box — muncul di bawah saat expanded (dalam frame)
 local inputRow = _N("Frame", frame)
 inputRow.Size = _U(1, -16, 0, 38)
 inputRow.Position = _U(0, 8, 0, 50)
@@ -278,8 +273,6 @@ inputBox.Font = _GB
 inputBox.TextSize = 15
 inputBox.TextXAlignment = _TX.Center
 inputBox.PlaceholderText = "speed"
--- Draggable dari nama
--- drag setup below
 local function applySpeed(val)
 local n = tonumber(val)
 if not n or n < 1 then return end
@@ -315,7 +308,6 @@ toggleBtn.MouseButton1Click:Connect(function()
 _toggleHit = true
 setExpanded(not expanded)
 end)
-
 local clickArea = _N("TextButton", frame)
 clickArea.Size = _U(1, -36, 0, 44)
 clickArea.Position = _U(0, 0, 0, 0)
@@ -586,4 +578,83 @@ if clickingSugg then return end
 local input = string.lower(box.Text)
 if not enter and input == "" then closeCmd(nil); return end
 closeCmd(input)
-end)getgenv().DeltaCmds.runCmd=runCommand
+end)
+local customHuds={}
+local function addButton(alias)
+	if not alias then return end
+	alias=string.lower(alias)
+	if customHuds[alias] then return end
+	local entry=aliasLookup[alias]
+	if not entry or not entry.fn then return end
+	local label=alias:sub(1,1):upper()..alias:sub(2)
+	local active=false
+	local tw2=TweenInfo.new(0.15,Enum.EasingStyle.Quad)
+	local frame=_N("Frame",sg)
+	frame.Size=_U(0,100,0,40)
+	frame.Position=_U(1,-120,0,20+hudYOffset)
+	frame.BackgroundColor3=_C(22,22,22)
+	frame.BorderSizePixel=0
+	frame.Active=true
+	frame.Visible=true
+	_N("UICorner",frame).CornerRadius=UDim.new(0,12)
+	local stroke=_N("UIStroke",frame)
+	stroke.Color=COLOR_ON
+	stroke.Thickness=2
+	local nameLabel=_N("TextLabel",frame)
+	nameLabel.Size=_U(1,0,1,0)
+	nameLabel.BackgroundTransparency=1
+	nameLabel.Text=label
+	nameLabel.TextColor3=COLOR_ON
+	nameLabel.Font=_GB
+	nameLabel.TextSize=16
+	nameLabel.TextXAlignment=_TX.Center
+	local E=14
+	local edgeDefs={
+		{_U(1,0,0,E),_U(0,0,0,0)},
+		{_U(1,0,0,E),_U(0,0,1,-E)},
+		{_U(0,E,1,0),_U(0,0,0,0)},
+		{_U(0,E,1,0),_U(1,-E,0,0)},
+	}
+	for _,ed in ipairs(edgeDefs)do
+		local strip=_N("TextButton",frame)
+		strip.Size=ed[1];strip.Position=ed[2]
+		strip.BackgroundTransparency=1;strip.Text=""
+		strip.AutoButtonColor=false;strip.ZIndex=3
+		makeDraggable(frame,strip)
+	end
+	local clickArea=_N("TextButton",frame)
+	clickArea.Size=_U(1,-8,1,-8);clickArea.Position=_U(0,4,0,4)
+	clickArea.BackgroundTransparency=1;clickArea.Text=""
+	clickArea.ZIndex=2
+	makeDraggable(frame,clickArea)
+	clickArea.MouseButton1Click:Connect(function()
+		active=not active
+		local col=active and COLOR_ON or COLOR_OFF
+		ts:Create(stroke,tw2,{Color=col}):Play()
+		ts:Create(nameLabel,tw2,{TextColor3=col}):Play()
+		if active then entry.fn() else
+			local unEntry=aliasLookup["un"..alias]
+			if unEntry and unEntry.fn then unEntry.fn() end
+		end
+	end)
+	hudYOffset+=50
+	customHuds[alias]={frame=frame}
+end
+local function removeButton(alias)
+	if not alias then return end
+	alias=string.lower(alias)
+	local data=customHuds[alias]
+	if not data then return end
+	data.frame:Destroy()
+	customHuds[alias]=nil
+end
+local _origRunCmd=runCommand
+local function runCommandEx(input)
+	local args={}
+	for word in string.gmatch(input,"%S+")do args[#args+1]=word end
+	local c=args[1]
+	if c=="addbutton"or c=="ab"then addButton(args[2]);return end
+	if c=="removebutton"or c=="rb"then removeButton(args[2]);return end
+	_origRunCmd(input)
+end
+getgenv().DeltaCmds.runCmd=runCommandEx
