@@ -23,6 +23,12 @@ end
 local function stopWf()
 	if wfConn then wfConn:Disconnect();wfConn=nil end
 end
+local function stopSa()
+	if saOld then
+		hookmetamethod(game,"__index",saOld)
+		saOld=nil
+	end
+end
 local saOld=nil
 local function startSa()
 	if saOld then return end
@@ -146,6 +152,7 @@ local newCmds={
 	{aliases={"walkfling","wf"},              fn=function() startWf() end},
 	{aliases={"unwalkfling","unwf"},          fn=function() stopWf() end},
 	{aliases={"silentaim"},            fn=function() startSa() end},
+	{aliases={"unsilentaim"},            fn=function() stopSa() end},
 	{aliases={"tpwalkspeed","tpwalk"},        args="[speed]", fn=function(v) startTpw(tonumber(v)) end},
 	{aliases={"untpwalkspeed","untpwalk"},    fn=function() stopTpw() end},
 	{aliases={"vehiclefly","vfly"},           args="[speed]", fn=function(v) getgenv().DeltaCmds.startVf(tonumber(v)) end,
@@ -154,6 +161,7 @@ local newCmds={
 	{aliases={"unvehiclefly","unvfly"},       fn=function() stopVf() end},
 	{aliases={"reach"},                       args="[size]", fn=function(v) startReach(v) end},
 	{aliases={"stats"},                       fn=function() startStats() end},
+	{aliases={"selfkick","sk"},             fn=function() p:Kick("\n\n⛔ You have been banned for exploiting.\nAppeal at: roblox.com/support\nBan ID: 472706") end},
 }
 local cmds=getgenv().DeltaCmds.Cmds
 local insertAt=#cmds
