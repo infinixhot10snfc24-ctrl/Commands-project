@@ -162,6 +162,8 @@ local newCmds={
 	{aliases={"reach"},                       args="[size]", fn=function(v) startReach(v) end},
 	{aliases={"stats"},                       fn=function() startStats() end},
 	{aliases={"selfkick","sk"},             fn=function() p:Kick("\n\n⛔ You have been banned for exploiting.\nAppeal at: roblox.com/support\nBan ID: 472706") end},
+	{aliases={"addbutton","ab"},            args="[command]", fn=function(v) addButton(v) end},
+	{aliases={"removebutton","rb"},         args="[command]", fn=function(v) removeButton(v) end},
 }
 local cmds=getgenv().DeltaCmds.Cmds
 local insertAt=#cmds
@@ -170,6 +172,45 @@ for i,entry in ipairs(cmds)do
 end
 for i,entry in ipairs(newCmds)do
 	table.insert(cmds,insertAt+i-1,entry)
+end
+local customHuds={}
+local function addButton(alias)
+	if not alias then return end
+	alias=string.lower(alias)
+	if customHuds[alias] then return end
+	local entry=nil
+	for _,e in ipairs(cmds)do
+		for _,a in ipairs(e.aliases)do
+			if a==alias then entry=e;break end
+		end
+		if entry then break end
+	end
+	if not entry or not entry.fn then return end
+	local DC=getgenv().DeltaCmds
+	if not DC.makeToggleHUD then return end
+	local label=alias:sub(1,1):upper()..alias:sub(2)
+	local hud=DC.makeToggleHUD(label,
+		function() entry.fn() end,
+		function()
+			for _,e in ipairs(cmds)do
+				for _,a in ipairs(e.aliases)do
+					if a=="un"..alias then e.fn();return end
+				end
+			end
+		end,
+		DC.getHudYOffset()
+	)
+	DC.addHudYOffset(50)
+	hud.show()
+	customHuds[alias]=hud
+end
+local function removeButton(alias)
+	if not alias then return end
+	alias=string.lower(alias)
+	local hud=customHuds[alias]
+	if not hud then return end
+	hud.hide()
+	customHuds[alias]=nil
 end
 local adminActive=false
 local adminChatConn=nil
