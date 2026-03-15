@@ -316,7 +316,6 @@ local function attachEsp(target)
         box.LineThickness = 0.01
         box.SurfaceColor3 = Color3.fromRGB(0, 255, 255)
         box.SurfaceTransparency = 0.7
-        box.AlwaysOnTop = true
         box.Parent = espFolder
         data.items[#data.items + 1] = box
         local hrp = char:WaitForChild("HumanoidRootPart", 5)
