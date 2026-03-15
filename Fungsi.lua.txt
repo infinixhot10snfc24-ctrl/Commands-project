@@ -335,25 +335,38 @@ local function attachEsp(target)
     end
     local function createESP(char)
         if not char then return end
-        local hrp = char:WaitForChild("HumanoidRootPart", 5)
-        if not hrp then return end
-        local bgUI = Instance.new("BillboardGui", getEspFolder())
-        bgUI.Size = UDim2.new(0, 200, 0, 44)
-        bgUI.StudsOffset = Vector3.new(0, 3, 0)
-        bgUI.AlwaysOnTop = true
-        bgUI.Adornee = hrp
-        data.items[#data.items + 1] = bgUI
-        local txt = Instance.new("TextLabel", bgUI)
-        txt.Size = UDim2.new(1, 0, 1, 0)
-        txt.BackgroundTransparency = 1
-        txt.TextColor3 = Color3.fromRGB(0, 255, 255)
-        txt.TextStrokeTransparency = 0
-        txt.Font = Enum.Font.GothamBold
-        txt.TextSize = 13
-        txt.Text = getLabel()
-        data.conns[#data.conns + 1] = target:GetPropertyChangedSignal("DisplayName"):Connect(function()
+        -- cek HRP langsung dulu tanpa nunggu
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            -- HRP udah ada, langsung attach
+            local bgUI = Instance.new("BillboardGui", getEspFolder())
+            bgUI.Size = UDim2.new(0, 200, 0, 44)
+            bgUI.StudsOffset = Vector3.new(0, 3, 0)
+            bgUI.AlwaysOnTop = true
+            bgUI.Adornee = hrp
+            data.items[#data.items + 1] = bgUI
+            local txt = Instance.new("TextLabel", bgUI)
+            txt.Size = UDim2.new(1, 0, 1, 0)
+            txt.BackgroundTransparency = 1
+            txt.TextColor3 = Color3.fromRGB(0, 255, 255)
+            txt.TextStrokeTransparency = 0
+            txt.Font = Enum.Font.GothamBold
+            txt.TextSize = 13
             txt.Text = getLabel()
-        end)
+            data.conns[#data.conns + 1] = target:GetPropertyChangedSignal("DisplayName"):Connect(function()
+                txt.Text = getLabel()
+            end)
+        else
+            -- HRP belum ada (nyamar NPC dll), tunggu pakai DescendantAdded
+            local hrpConn
+            hrpConn = char.DescendantAdded:Connect(function(d)
+                if d.Name == "HumanoidRootPart" and d:IsA("BasePart") then
+                    hrpConn:Disconnect()
+                    createESP(char)
+                end
+            end)
+            data.conns[#data.conns + 1] = hrpConn
+        end
     end
     if target.Character then createESP(target.Character) end
     data.conns[#data.conns+1] = target.CharacterAdded:Connect(createESP)
