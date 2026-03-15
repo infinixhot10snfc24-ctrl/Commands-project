@@ -25,6 +25,7 @@ end)
 end
 end)
 handle.InputChanged:Connect(function(input)
+-- Hanya proses input yang sama dengan yang mulai drag
 if dragInput and input == dragInput then
 local delta = input.Position - dragStart
 frame.Position = _U(
@@ -212,6 +213,7 @@ local active   = false
 local speed    = defaultSpd
 local expanded = false
 local tw       = TweenInfo.new(0.15, Enum.EasingStyle.Quad)
+-- Frame utama — collapsed: 110x44, expanded: 110x90
 local frame = _N("Frame", sg)
 frame.Size = _U(0, 130, 0, 44)
 frame.Position = _U(1, -146, 0, 20 + yOff)
@@ -224,6 +226,7 @@ _N("UICorner", frame).CornerRadius = UDim.new(0, 12)
 local stroke = _N("UIStroke", frame)
 stroke.Color = COLOR_ON
 stroke.Thickness = 2
+-- Row atas: nama + nilai speed
 local nameLabel = _N("TextLabel", frame)
 nameLabel.Size = _U(1, -64, 0, 44)
 nameLabel.Position = _U(0, 10, 0, 0)
@@ -244,6 +247,7 @@ speedLabel.Font = _GB
 speedLabel.TextSize = 11
 speedLabel.TextXAlignment = _TX.Center
 speedLabel.TextYAlignment = Enum.TextYAlignment.Center
+-- Tombol +/- kecil di kanan
 local toggleBtn = _N("TextButton", frame)
 toggleBtn.Size = _U(0, 22, 0, 22)
 toggleBtn.Position = _U(1, -26, 0, 11)
@@ -255,6 +259,7 @@ toggleBtn.Font = _GB
 toggleBtn.TextSize = 13
 toggleBtn.ZIndex = 5
 _N("UICorner", toggleBtn).CornerRadius = UDim.new(0, 6)
+-- Input box — muncul di bawah saat expanded (dalam frame)
 local inputRow = _N("Frame", frame)
 inputRow.Size = _U(1, -16, 0, 38)
 inputRow.Position = _U(0, 8, 0, 50)
@@ -273,6 +278,8 @@ inputBox.Font = _GB
 inputBox.TextSize = 15
 inputBox.TextXAlignment = _TX.Center
 inputBox.PlaceholderText = "speed"
+-- Draggable dari nama
+-- drag setup below
 local function applySpeed(val)
 local n = tonumber(val)
 if not n or n < 1 then return end
@@ -308,6 +315,7 @@ toggleBtn.MouseButton1Click:Connect(function()
 _toggleHit = true
 setExpanded(not expanded)
 end)
+
 local clickArea = _N("TextButton", frame)
 clickArea.Size = _U(1, -36, 0, 44)
 clickArea.Position = _U(0, 0, 0, 0)
@@ -578,8 +586,4 @@ if clickingSugg then return end
 local input = string.lower(box.Text)
 if not enter and input == "" then closeCmd(nil); return end
 closeCmd(input)
-end)
-getgenv().DeltaCmds.runCmd=runCommand
-getgenv().DeltaCmds.makeToggleHUD=makeToggleHUD
-getgenv().DeltaCmds.getHudYOffset=function() return hudYOffset end
-getgenv().DeltaCmds.addHudYOffset=function(v) hudYOffset+=v end
+end)getgenv().DeltaCmds.runCmd=runCommand
