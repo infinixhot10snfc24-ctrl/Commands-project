@@ -12,12 +12,13 @@ local function startWf()
 		local char=p.Character
 		local root=getRoot(char)
 		if not root then return end
-		local vel=root.Velocity
-		root.Velocity=vel*10000+Vector3.new(0,10000,0)
+		-- FIX: AssemblyLinearVelocity menggantikan .Velocity yang deprecated
+		local vel=root.AssemblyLinearVelocity
+		root.AssemblyLinearVelocity=vel*10000+Vector3.new(0,10000,0)
 		rs.RenderStepped:Wait()
-		if root then root.Velocity=vel end
+		if root then root.AssemblyLinearVelocity=vel end
 		rs.RenderStepped:Wait()
-		if root then root.Velocity=vel+Vector3.new(0,0.1,0)end
+		if root then root.AssemblyLinearVelocity=vel+Vector3.new(0,0.1,0)end
 	end)
 end
 local function stopWf()
@@ -62,6 +63,12 @@ local function startSa()
 		end
 		return saOld(self,key)
 	end))
+end
+-- FIX: stopSa untuk restore hook — tanpa ini silentaim tidak bisa dimatiin
+local function stopSa()
+	if not saOld then return end
+	hookmetamethod(game,"__index",saOld)
+	saOld=nil
 end
 local tpwConn=nil
 local function startTpw(spd)
@@ -112,7 +119,7 @@ getgenv().DeltaCmds.startVf=function(spd)
 			if not char:IsDescendantOf(workspace)or not bg.Parent or not bv.Parent then
 				vfConn:Disconnect();vfConn=nil;bg:Destroy();bv:Destroy();return
 			end
-			local mv=getgenv().DeltaCmds.ctrls:GetMoveVector()
+			local mv=getgenv().DeltaCmds.getCtrls():GetMoveVector()
 			if mv.Magnitude>0 then
 				bv.Velocity=cam.CFrame:VectorToWorldSpace(Vector3.new(mv.X,0,mv.Z))*speed
 			else
@@ -142,10 +149,72 @@ end
 local function startStats()
 	getgenv().DeltaCmds._showStats=true
 end
+local invisConn       = nil
+local invisCharConn   = nil
+local invisActive     = false
+local invisVisibleParts = {}
+
+local function setupInvisChar(char)
+	char = char or p.Character
+	if not char then return end
+	invisVisibleParts = {}
+	for _, part in pairs(char:GetDescendants()) do
+		if part:IsA("BasePart") and part.Transparency == 0 then
+			invisVisibleParts[#invisVisibleParts + 1] = part
+		end
+	end
+	for _, part in pairs(invisVisibleParts) do
+		part.Transparency = 0.5
+	end
+end
+
+local function startInvis()
+	if invisActive then return end
+	invisActive = true
+	local char = p.Character or p.CharacterAdded:Wait()
+	local hum  = char:WaitForChild("Humanoid", 5)
+	local root = char:WaitForChild("HumanoidRootPart", 5)
+	if not hum or not root then invisActive = false; return end
+	setupInvisChar(char)
+	if invisCharConn then invisCharConn:Disconnect() end
+	invisCharConn = p.CharacterAdded:Connect(function(newChar)
+		if not invisActive then return end
+		hum  = newChar:WaitForChild("Humanoid", 5)
+		root = newChar:WaitForChild("HumanoidRootPart", 5)
+		if hum and root then setupInvisChar(newChar) end
+	end)
+	if invisConn then invisConn:Disconnect() end
+	invisConn = rs.Heartbeat:Connect(function()
+		if not invisActive then return end
+		if not root or not root.Parent then return end
+		if not hum  or not hum.Parent  then return end
+		local origCFrame       = root.CFrame
+		local origCameraOffset = hum.CameraOffset
+		local hiddenCFrame     = origCFrame * CFrame.new(0, -200000, 0)
+		local camPos = hiddenCFrame:ToObjectSpace(CFrame.new(origCFrame.Position)).Position
+		root.CFrame      = hiddenCFrame
+		hum.CameraOffset = camPos
+		rs.RenderStepped:Wait()
+		root.CFrame      = origCFrame
+		hum.CameraOffset = origCameraOffset
+	end)
+end
+
+local function stopInvis()
+	invisActive = false
+	if invisConn     then invisConn:Disconnect();     invisConn     = nil end
+	if invisCharConn then invisCharConn:Disconnect(); invisCharConn = nil end
+	for _, part in pairs(invisVisibleParts) do
+		if part and part.Parent then part.Transparency = 0 end
+	end
+	invisVisibleParts = {}
+end
+
 local newCmds={
 	{aliases={"walkfling","wf"},              fn=function() startWf() end},
 	{aliases={"unwalkfling","unwf"},          fn=function() stopWf() end},
 	{aliases={"silentaim"},            fn=function() startSa() end},
+	{aliases={"unsilentaim"},          fn=function() stopSa()  end},
 	{aliases={"tpwalkspeed","tpwalk"},        args="[speed]", fn=function(v) startTpw(tonumber(v)) end},
 	{aliases={"untpwalkspeed","untpwalk"},    fn=function() stopTpw() end},
 	{aliases={"vehiclefly","vfly"},           args="[speed]", fn=function(v) getgenv().DeltaCmds.startVf(tonumber(v)) end,
@@ -154,6 +223,8 @@ local newCmds={
 	{aliases={"unvehiclefly","unvfly"},       fn=function() stopVf() end},
 	{aliases={"reach"},                       args="[size]", fn=function(v) startReach(v) end},
 	{aliases={"stats"},                       fn=function() startStats() end},
+	{aliases={"invisible","invis"},           fn=function() startInvis() end},
+	{aliases={"uninvisible","uninvis"},       fn=function() stopInvis()  end},
 }
 local cmds=getgenv().DeltaCmds.Cmds
 local insertAt=#cmds
