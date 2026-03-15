@@ -114,10 +114,8 @@ local function startAfl()
 	local function applyPart(part)
 		if not aflOrig[part] then
 			aflOrig[part] = part.CanCollide
-			part.AncestryChanged:Connect(function()
-				if not part.Parent then
-					aflOrig[part] = nil
-				end
+			aflConns[#aflConns+1] = part.AncestryChanged:Connect(function()
+				if not part.Parent then aflOrig[part] = nil end
 			end)
 		end
 		part.CanCollide = false
@@ -303,34 +301,30 @@ local function startAl(fov)
 		local dir = h.Position-o
 		rp.FilterDescendantsInstances = {L.Character,h.Parent}
 		local r = workspace:Raycast(o,dir,rp)
-		if not r then return true end
-		return false
+		return not r
 	end
 	local function ok(h)
 		if not h or not h.Parent then return false end
 		local ch = h.Parent
 		local hu = ch:FindFirstChild("Humanoid")
 		local ro = ch:FindFirstChild("HumanoidRootPart")
-		if not hu or hu.Health<=0 then return false end
+		if not hu or hu.Health<=0 or not ro then return false end
 		local my = L.Character
 		local mr = my and my:FindFirstChild("HumanoidRootPart")
 		if not mr then return false end
 		if (ro.Position-mr.Position).Magnitude>M then return false end
+		local vp = C.ViewportSize
+		local cx,cy = vp.X*.5, vp.Y*.5
 		local pos,vis = C:WorldToViewportPoint(h.Position)
 		if not vis then return false end
-		local cx = C.ViewportSize.X*.5
-		local cy = C.ViewportSize.Y*.5
-		local dx = pos.X-cx
-		local dy = pos.Y-cy
+		local dx,dy = pos.X-cx, pos.Y-cy
 		if dx*dx+dy*dy>F2 then return false end
-		if not v(h) then return false end
-		return true
+		return v(h)
 	end
 	local function gcl()
-		local cl = nil
-		local cd = F2
-		local cx = C.ViewportSize.X*.5
-		local cy = C.ViewportSize.Y*.5
+		local cl,cd = nil,F2
+		local vp = C.ViewportSize
+		local cx,cy = vp.X*.5, vp.Y*.5
 		local my = L.Character
 		local mr = my and my:FindFirstChild("HumanoidRootPart")
 		if not mr then return nil end
@@ -344,11 +338,10 @@ local function startAl(fov)
 				if h and hu and hu.Health>0 and ro then
 					if (ro.Position-mr.Position).Magnitude<=M then
 						local pos,vis = C:WorldToViewportPoint(h.Position)
-						if vis and v(h) then
-							local dx = pos.X-cx
-							local dy = pos.Y-cy
+						if vis then
+							local dx,dy = pos.X-cx, pos.Y-cy
 							local dist = dx*dx+dy*dy
-							if dist<cd then cd=dist cl=h end
+							if dist<cd and v(h) then cd=dist cl=h end
 						end
 					end
 				end
@@ -377,7 +370,13 @@ local function startAl(fov)
 end
 
 
+local neConns = {}
+local function stopNoEffect()
+	for _, c in ipairs(neConns) do c:Disconnect() end
+	neConns = {}
+end
 local function startNoEffect()
+	stopNoEffect()
 	local w,l=workspace,game:GetService("Lighting")
 	l.GlobalShadows=false
 	local d={ParticleEmitter=true,Fire=true,Smoke=true,Sparkles=true,Trail=true,Beam=true,BlurEffect=true,BloomEffect=true,ColorCorrectionEffect=true,SunRaysEffect=true,DepthOfFieldEffect=true,PointLight=true,SpotLight=true,SurfaceLight=true,Clouds=true,Explosion=true}
@@ -404,11 +403,17 @@ local function startNoEffect()
 	end
 	for _,o in ipairs(w:GetDescendants())do f(o)end
 	for _,o in ipairs(l:GetDescendants())do f(o)end
-	w.DescendantAdded:Connect(f)
-	l.DescendantAdded:Connect(f)
+	neConns[#neConns+1] = w.DescendantAdded:Connect(f)
+	neConns[#neConns+1] = l.DescendantAdded:Connect(f)
 end
 
+local avisConns = {}
+local function stopAvis()
+	for _, c in ipairs(avisConns) do c:Disconnect() end
+	avisConns = {}
+end
 local function startAvis()
+	stopAvis()
 	local pl=game:GetService("Players")
 	local b={Head=1,Torso=1,["Left Arm"]=1,["Right Arm"]=1,["Left Leg"]=1,["Right Leg"]=1,UpperTorso=1,LowerTorso=1,RightUpperArm=1,RightLowerArm=1,RightHand=1,LeftUpperArm=1,LeftLowerArm=1,LeftHand=1,RightUpperLeg=1,RightLowerLeg=1,RightFoot=1,LeftUpperLeg=1,LeftLowerLeg=1,LeftFoot=1}
 	local function v(o)
@@ -423,13 +428,15 @@ local function startAvis()
 	end
 	local function c(h)
 		for _,o in ipairs(h:GetDescendants())do v(o)end
-		h.DescendantAdded:Connect(v)
+		avisConns[#avisConns+1] = h.DescendantAdded:Connect(v)
 	end
 	for _,player in ipairs(pl:GetPlayers())do
 		if player.Character then c(player.Character)end
-		player.CharacterAdded:Connect(c)
+		avisConns[#avisConns+1] = player.CharacterAdded:Connect(c)
 	end
-	pl.PlayerAdded:Connect(function(player)player.CharacterAdded:Connect(c)end)
+	avisConns[#avisConns+1] = pl.PlayerAdded:Connect(function(player)
+		avisConns[#avisConns+1] = player.CharacterAdded:Connect(c)
+	end)
 end
 
 
@@ -489,7 +496,9 @@ local newCmds = {
 	{ aliases = {"aimlock"},              args = "[fov]", fn = function(v) startAl(tonumber(v)) end },
 	{ aliases = {"unaimlock"},            fn = function()  stopAl() end },
 	{ aliases = {"noeffect"},             fn = function()  startNoEffect() end },
+	{ aliases = {"unnoeffect"},           fn = function()  stopNoEffect()  end },
 	{ aliases = {"antiinvisible","antiinvis","avis"}, args = "[client]", fn = function()  startAvis() end },
+	{ aliases = {"unantiinvisible","unantiinvis","unavis"}, fn = function() stopAvis() end },
 	{ aliases = {"autoclicker","autoclick"},          fn = function()  startAutoClick() end },
 	{ aliases = {"unautoclicker","unautoclick"},       fn = function()  stopAutoClick() end },
 	{ aliases = {"selfkick","sk"},                    fn = function()  p:Kick("You have been banned.\n\nReason: Exploiting\n\nAppeal at: www.roblox.com/appeal") end },
