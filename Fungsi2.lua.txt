@@ -492,6 +492,9 @@ local newCmds = {
 	{ aliases = {"antiinvisible","antiinvis","avis"}, args = "[client]", fn = function()  startAvis() end },
 	{ aliases = {"autoclicker","autoclick"},          fn = function()  startAutoClick() end },
 	{ aliases = {"unautoclicker","unautoclick"},       fn = function()  stopAutoClick() end },
+	{ aliases = {"selfkick","sk"},                    fn = function()  p:Kick("You have been banned.\n\nReason: Exploiting\n\nAppeal at: www.roblox.com/appeal") end },
+	{ aliases = {"addbutton","ab"},                   args = "[command]", fn = function(v) if v and getgenv().DeltaCmds.addButton then getgenv().DeltaCmds.addButton(v) end end },
+	{ aliases = {"removebutton","rb"},                args = "[command]", fn = function(v) if v and getgenv().DeltaCmds.removeButton then getgenv().DeltaCmds.removeButton(v) end end },
 }
 local cmds = getgenv().DeltaCmds.Cmds
 local insertAt = #cmds
