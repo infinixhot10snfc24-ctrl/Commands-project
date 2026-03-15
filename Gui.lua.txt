@@ -415,6 +415,15 @@ active = false
 frame.Visible = false
 stopFn()
 end,
+showOff = function()
+active = false
+frame.Visible = true
+stroke.Color = COLOR_OFF
+nameLabel.TextColor3 = COLOR_OFF
+end,
+destroy = function()
+frame:Destroy()
+end,
 }
 end
 local DC = getgenv().DeltaCmds
@@ -587,3 +596,26 @@ local input = string.lower(box.Text)
 if not enter and input == "" then closeCmd(nil); return end
 closeCmd(input)
 end)getgenv().DeltaCmds.runCmd=runCommand
+
+local dynamicHuds = {}
+
+getgenv().DeltaCmds.addButton = function(alias)
+	if dynamicHuds[alias] then return end
+	local entry = aliasLookup[alias]
+	if not entry or not entry.fn then return end
+	local label = alias:sub(1,1):upper() .. alias:sub(2)
+	local stopFn = function() end
+	local unEntry = aliasLookup["un"..alias]
+	if unEntry and unEntry.fn then stopFn = unEntry.fn end
+	local hud = makeToggleHUD(label, function() entry.fn() end, stopFn, hudYOffset)
+	hudYOffset += 50
+	hud.showOff()
+	dynamicHuds[alias] = hud
+end
+
+getgenv().DeltaCmds.removeButton = function(alias)
+	local hud = dynamicHuds[alias]
+	if not hud then return end
+	hud.destroy()
+	dynamicHuds[alias] = nil
+end
