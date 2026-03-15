@@ -4,7 +4,7 @@ The project aims to create a stable environment where various utility commands c
 Delta Commands is built with a modular architecture so that new functionality and commands can be added or modified easily as the project evolves.
 Usage
 Run the loader using the following loadstring:
-loadstring(game:HttpGet("https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/loader.lua.txt⁠�"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/loader.lua.txt"))()
 The loader will automatically initialize the framework and load the required modules.
 Commands
 Delta Commands provides a large set of commands designed to control different aspects of the game environment and player behavior.
