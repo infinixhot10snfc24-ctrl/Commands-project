@@ -65,7 +65,7 @@ local function startFc(spd)
 	local char = p.Character
 	local root = char and char:FindFirstChild("HumanoidRootPart")
 	if root then root.Anchored = true end
-	local ctrls = getgenv().DeltaCmds.ctrls
+	local ctrls = getgenv().DeltaCmds.getCtrls()
 	fcConn = rs.RenderStepped:Connect(function()
 		local mv = ctrls:GetMoveVector()
 		local move = (cam.CFrame.LookVector * -mv.Z) + (cam.CFrame.RightVector * mv.X)
@@ -78,7 +78,7 @@ local function startFc(spd)
 		if r then r.Anchored = true end
 	end)
 end
-local origFog = lighting.FogEnd
+local origFog = nil  -- lazy: dicapture saat startNf dipanggil
 local nfActive = false
 local nfConn = nil
 local function startNf()
@@ -297,7 +297,7 @@ local function startAl(fov)
 		end
 	end)
 	local rp = RaycastParams.new()
-	rp.FilterType = Enum.RaycastFilterType.Blacklist
+	rp.FilterType = Enum.RaycastFilterType.Exclude
 	local function v(h)
 		local o = C.CFrame.Position
 		local dir = h.Position-o
