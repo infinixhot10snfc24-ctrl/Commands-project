@@ -109,12 +109,14 @@ local function stopFly()
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
 	if hum then hum.PlatformStand = false end
 end
+local _flyHum = nil
 local function setupFlyChar(char)
 	if bv then bv:Destroy(); bv = nil end
 	if bg then bg:Destroy(); bg = nil end
 	local root = char:WaitForChild("HumanoidRootPart", 10)
 	local hum = char:WaitForChild("Humanoid", 10)
 	if not (root and hum) then return end
+	_flyHum = hum
 	bv = Instance.new("BodyVelocity", root)
 	bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
 	bg = Instance.new("BodyGyro", root)
@@ -124,23 +126,25 @@ end
 local function startFly(spd)
 	stopFly()
 	isFlying = true
-	getgenv().DeltaCmds.flySpeed = spd
+	local flySpeed = spd
+	getgenv().DeltaCmds.flySpeed = flySpeed
 	if flyCharConn then flyCharConn:Disconnect() end
 	local char = p.Character or p.CharacterAdded:Wait()
 	setupFlyChar(char)
-	flyCharConn = p.CharacterAdded:Connect(setupFlyChar)
+	flyCharConn = p.CharacterAdded:Connect(function(c)
+		setupFlyChar(c)
+		flySpeed = getgenv().DeltaCmds.flySpeed or 50
+	end)
 	flyConn = rs.RenderStepped:Connect(function()
 		if not isFlying then return end
 		if not bv or not bv.Parent then return end
-		local char2 = p.Character
-		local hum2 = char2 and char2:FindFirstChildOfClass("Humanoid")
-		if not hum2 then return end
+		if not _flyHum or not _flyHum.Parent then return end
 		local mv = getCtrls():GetMoveVector()
 		local cf = cam.CFrame
 		local vel = cf.RightVector * mv.X + cf.LookVector * -mv.Z
-		bv.Velocity = vel.Magnitude > 0 and vel.Unit * (getgenv().DeltaCmds.flySpeed or 50) or Vector3.zero
+		bv.Velocity = vel.Magnitude > 0 and vel.Unit * flySpeed or Vector3.zero
 		bg.CFrame = cf
-		hum2.PlatformStand = true
+		_flyHum.PlatformStand = true
 	end)
 end
 local noclipCharConn = nil
@@ -333,12 +337,17 @@ local function attachEsp(target)
             and target.DisplayName .. "\n@" .. target.Name
             or target.Name
     end
+    local function clearItems()
+        for _, obj in ipairs(data.items) do
+            if obj and obj.Parent then obj:Destroy() end
+        end
+        data.items = {}
+    end
     local function createESP(char)
         if not char then return end
-        -- cek HRP langsung dulu tanpa nunggu
+        clearItems()
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if hrp then
-            -- HRP udah ada, langsung attach
             local bgUI = Instance.new("BillboardGui", getEspFolder())
             bgUI.Size = UDim2.new(0, 200, 0, 44)
             bgUI.StudsOffset = Vector3.new(0, 3, 0)
@@ -357,7 +366,6 @@ local function attachEsp(target)
                 txt.Text = getLabel()
             end)
         else
-            -- HRP belum ada (nyamar NPC dll), tunggu pakai DescendantAdded
             local hrpConn
             hrpConn = char.DescendantAdded:Connect(function(d)
                 if d.Name == "HumanoidRootPart" and d:IsA("BasePart") then
@@ -383,21 +391,6 @@ local function startEsp(name)
         detachEspPlayer(pl)
     end)
 end
-local function freeze(char, duration)
-	-- Anchor parts sekali, lepas setelah durasi — lebih ringan dari loop tiap frame
-	local parts = {}
-	for _, v in ipairs(char:GetDescendants()) do
-		if v:IsA("BasePart") and not v.Anchored then
-			v.Anchored = true
-			parts[#parts+1] = v
-		end
-	end
-	task.delay(duration, function()
-		for _, v in ipairs(parts) do
-			if v and v.Parent then v.Anchored = false end
-		end
-	end)
-end
 local function startFling(name)
 	if not name then return end
 	local a=resolveTargets(name)
@@ -416,13 +409,15 @@ local function startFling(name)
 	local s=tick()
 	repeat
 		r.CFrame=tr.CFrame*CFrame.new(math.random(-2,2),math.random(-1,2),math.random(-2,2))
-		r.Velocity,r.RotVelocity=Vector3.new(9e7,9e8,9e7),Vector3.new(9e8,9e8,9e8)
+		r.AssemblyLinearVelocity=Vector3.new(9e7,9e8,9e7)
+		r.AssemblyAngularVelocity=Vector3.new(9e8,9e8,9e8)
 		task.wait()
-	until tr.Velocity.Magnitude>500 or not t.Parent or not tc.Parent or h.Health<=0 or tick()-s>2
+	until tr.AssemblyLinearVelocity.Magnitude>500 or not t.Parent or not tc.Parent or h.Health<=0 or tick()-s>2
 	bv:Destroy()
 	h:SetStateEnabled(15,true)
 	cam.CameraSubject=h
-	r.Velocity,r.RotVelocity=Vector3.zero,Vector3.zero
+	r.AssemblyLinearVelocity=Vector3.zero
+	r.AssemblyAngularVelocity=Vector3.zero
 	r.CFrame=o*CFrame.new(0,0.5,0)
 	h:ChangeState(8)
 end
@@ -595,6 +590,12 @@ getgenv().DeltaCmds.Cmds = {
 			vu:Button2Up(Vector2.new(), cam.CFrame)
 		end)
 	end },
+	{ aliases = {"unantiafk", "uaafk"},                   fn = function()
+		if getgenv().DeltaCmds._aafkConn then
+			getgenv().DeltaCmds._aafkConn:Disconnect()
+			getgenv().DeltaCmds._aafkConn = nil
+		end
+	end },
 	{ aliases = {"fixcam"},                               fn = function()
 		local ch = p.Character or p.CharacterAdded:Wait()
 		local h = ch:FindFirstChildOfClass("Humanoid")
@@ -624,12 +625,11 @@ getgenv().DeltaCmds.Cmds = {
 		end
 		local function monitor(hrp)
 			local sz = Vector3.new(size, size, size)
-			-- FIX: simpan ukuran asli sebelum diubah
 			if not hitboxOrigSizes[hrp] then
 				hitboxOrigSizes[hrp] = hrp.Size
 			end
 			local function apply()
-				if hrp.Size ~= sz then
+				if hrp.Size.X ~= size then
 					hrp.Size = sz
 					hrp.Transparency = transp
 				end
