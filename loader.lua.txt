@@ -1,0 +1,263 @@
+do
+	local env = getgenv()
+	local ts = game:GetService("TweenService")
+	local cg = game:GetService("CoreGui")
+	local players = game:GetService("Players")
+
+	local VERSION = "1.0.0"
+
+	local function cleanupLoader()
+		local cmds = env.DeltaCmds
+		if cmds and cmds.Cmds then
+			for _,cmd in ipairs(cmds.Cmds) do
+				if type(cmd.aliases)=="table" and cmd.aliases[1] then
+					local a = cmd.aliases[1]
+					if (string.sub(a,1,2)=="un" or a=="clip") and type(cmd.fn)=="function" then
+						pcall(cmd.fn)
+					end
+				end
+			end
+			env.DeltaCmds = nil
+		end
+
+		local objs = env.DeltaObjects
+		if objs then
+			for _,obj in ipairs(objs) do
+				if typeof(obj)=="Instance" then
+					pcall(function() obj:Destroy() end)
+				end
+			end
+		end
+
+		env.DeltaObjects = {}
+		env._DeltaLoaded = false
+	end
+
+	if env._DeltaLoaded then
+		cleanupLoader()
+		task.wait(0.1)
+	end
+
+	env._DeltaLoaded = true
+	env.DeltaObjects = env.DeltaObjects or {}
+	env.DeltaCache = env.DeltaCache or {}
+
+	local ui = {}
+
+	local scripts = {
+		{name="Fungsi.lua",url="https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/Fungsi.lua.txt",waitEnv=false},
+		{name="Fungsi2.lua",url="https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/Fungsi2.lua.txt",waitEnv=false},
+		{name="Fungsi3.lua",url="https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/Fungsi3.lua.txt",waitEnv=true},
+		{name="Gui.lua",url="https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/Gui.lua.txt",waitEnv=false},
+		{name="Gui2.lua",url="https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/Gui2.lua.txt",waitEnv=false}
+	}
+
+	local function fail(reason,moduleName,errDetail)
+		if ui.status then
+			ui.status.Text = reason..": "..moduleName
+			ui.status.TextColor3 = Color3.fromRGB(255,0,0)
+		end
+		task.wait(2)
+		cleanupLoader()
+		error(reason.." in "..moduleName.." | "..tostring(errDetail))
+	end
+
+	local function createLoaderUI()
+		local sg = Instance.new("ScreenGui")
+		ui.sg = sg
+		sg.Name = "DeltaLoaderUI"
+		sg.IgnoreGuiInset = true
+		table.insert(env.DeltaObjects,sg)
+
+		local success = pcall(function() sg.Parent = cg end)
+		if not success then
+			sg.Parent = players.LocalPlayer:WaitForChild("PlayerGui")
+		end
+
+		local bg = Instance.new("Frame",sg)
+		ui.bg = bg
+		bg.Size = UDim2.new(1,0,1,0)
+		bg.BackgroundColor3 = Color3.fromRGB(0,0,0)
+		bg.BackgroundTransparency = 1
+
+		local frame = Instance.new("Frame",bg)
+		ui.frame = frame
+		frame.Size = UDim2.new(0,0,0,0)
+		frame.Position = UDim2.new(0.5,0,0.5,0)
+		frame.AnchorPoint = Vector2.new(0.5,0.5)
+		frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+		frame.ClipsDescendants = true
+
+		local corner = Instance.new("UICorner",frame)
+		corner.CornerRadius = UDim.new(0,12)
+
+		local stroke = Instance.new("UIStroke",frame)
+		stroke.Color = Color3.fromRGB(0,170,255)
+		stroke.Thickness = 2
+
+		local title = Instance.new("TextLabel",frame)
+		title.Size = UDim2.new(1,0,0,50)
+		title.Position = UDim2.new(0,0,0,20)
+		title.BackgroundTransparency = 1
+		title.Text = "DELTA COMMANDS"
+		title.TextColor3 = Color3.fromRGB(255,255,255)
+		title.Font = Enum.Font.GothamBlack
+		title.TextSize = 24
+
+		local version = Instance.new("TextLabel",frame)
+		version.Size = UDim2.new(1,0,0,18)
+		version.Position = UDim2.new(0,0,0,58)
+		version.BackgroundTransparency = 1
+		version.Text = "v"..VERSION
+		version.TextColor3 = Color3.fromRGB(150,150,150)
+		version.Font = Enum.Font.Gotham
+		version.TextSize = 12
+
+		local barBg = Instance.new("Frame",frame)
+		ui.barBg = barBg
+		barBg.Size = UDim2.new(0,280,0,10)
+		barBg.Position = UDim2.new(0.5,0,0.5,10)
+		barBg.AnchorPoint = Vector2.new(0.5,0.5)
+		barBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+		local barCorner = Instance.new("UICorner",barBg)
+		barCorner.CornerRadius = UDim.new(1,0)
+
+		local barFill = Instance.new("Frame",barBg)
+		ui.barFill = barFill
+		barFill.Size = UDim2.new(0,0,1,0)
+		barFill.BackgroundColor3 = Color3.fromRGB(0,170,255)
+
+		local fillCorner = Instance.new("UICorner",barFill)
+		fillCorner.CornerRadius = UDim.new(1,0)
+
+		local status = Instance.new("TextLabel",frame)
+		ui.status = status
+		status.Size = UDim2.new(1,0,0,30)
+		status.Position = UDim2.new(0,0,0.5,30)
+		status.BackgroundTransparency = 1
+		status.Text = "Starting up..."
+		status.TextColor3 = Color3.fromRGB(180,180,180)
+		status.Font = Enum.Font.GothamSemibold
+		status.TextSize = 14
+
+		ts:Create(bg,TweenInfo.new(0.5),{BackgroundTransparency=0.4}):Play()
+		ts:Create(frame,TweenInfo.new(0.6,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,350,0,180)}):Play()
+		task.wait(0.8)
+	end
+
+	local function updateProgress(pct,txt)
+		if ui.status then
+			ui.status.Text = txt
+		end
+		if ui.barFill then
+			ts:Create(ui.barFill,TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=UDim2.new(pct,0,1,0)}):Play()
+		end
+	end
+
+	local function downloadScript(url,name)
+		local cache = env.DeltaCache
+		if cache[url] then
+			return cache[url]
+		end
+		local success,result = pcall(function()
+			return game:HttpGet(url)
+		end)
+		if success and result then
+			cache[url] = result
+			return result
+		else
+			return nil,result
+		end
+	end
+
+	local function runScript(code,name)
+		local func,compErr = loadstring(code)
+		if not func then
+			fail("Syntax Error",name,compErr)
+		end
+		local execSuccess,execErr = pcall(func)
+		if not execSuccess then
+			fail("Run Error",name,execErr)
+		end
+	end
+
+	local function finishLoader()
+		if ui.status then
+			ui.status.Text = "Done!"
+			ui.status.TextColor3 = Color3.fromRGB(0,255,120)
+		end
+		task.wait(0.4)
+		if ui.frame then
+			ts:Create(ui.frame,TweenInfo.new(0.5,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)}):Play()
+		end
+		if ui.bg then
+			ts:Create(ui.bg,TweenInfo.new(0.5),{BackgroundTransparency=1}):Play()
+		end
+		task.wait(0.5)
+		if ui.sg then
+			ui.sg:Destroy()
+		end
+		env.DeltaObjects = {}
+	end
+
+	createLoaderUI()
+
+	local results = table.create(#scripts)
+	local states = table.create(#scripts)
+	local finished = 0
+	local total = #scripts
+	local timeout = 15
+	local start = os.clock()
+
+	for i,scriptData in ipairs(scripts) do
+		states[i] = false
+		task.spawn(function()
+			local code,err = downloadScript(scriptData.url,scriptData.name)
+			results[i] = {code=code,err=err,name=scriptData.name}
+			states[i] = true
+			finished += 1
+		end)
+	end
+
+	while finished < total and os.clock()-start < timeout do
+		updateProgress(finished/total,"Downloading scripts...")
+		task.wait(0.05)
+	end
+
+	if finished < total then
+		for i,done in ipairs(states) do
+			if not done then
+				fail("Conn Error",scripts[i].name,"Timeout")
+			end
+		end
+	end
+
+	for i,scriptData in ipairs(scripts) do
+		local r = results[i]
+		if not r or not r.code then
+			fail("Conn Error",scriptData.name,r and r.err or "Unknown error")
+		end
+		scriptData.code = r.code
+	end
+
+	for i,scriptData in ipairs(scripts) do
+		updateProgress((i-1)/total,"Executing "..scriptData.name.."...")
+		runScript(scriptData.code,scriptData.name)
+		scriptData.code = nil
+
+		if scriptData.waitEnv then
+			local waitTime = 0
+			repeat
+				task.wait(0.1)
+				waitTime += 0.1
+				if waitTime >= 10 then
+					fail("Timeout","DeltaCmds Env","Environment loading failed")
+				end
+			until env.DeltaCmds
+		end
+	end
+
+	updateProgress(1,"Finalizing...")
+	finishLoader()
+end
