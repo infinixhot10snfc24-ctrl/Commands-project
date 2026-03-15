@@ -310,11 +310,15 @@ local function attachEsp(target)
     end
     local function createESP(char)
         if not char then return end
-        local hl = Instance.new("Highlight", espFolder)
-        hl.FillColor = Color3.fromRGB(0, 255, 255)
-        hl.OutlineColor = Color3.new(1,1,1)
-        hl.Adornee = char
-        data.items[#data.items+1] = hl
+        local box = Instance.new("SelectionBox")
+        box.Adornee = char
+        box.Color3 = Color3.fromRGB(0, 255, 255)
+        box.LineThickness = 0.01
+        box.SurfaceColor3 = Color3.fromRGB(0, 255, 255)
+        box.SurfaceTransparency = 0.7
+        box.AlwaysOnTop = true
+        box.Parent = espFolder
+        data.items[#data.items + 1] = box
         local hrp = char:WaitForChild("HumanoidRootPart", 5)
         if not hrp then return end
         local bgUI = Instance.new("BillboardGui", espFolder)
@@ -322,7 +326,7 @@ local function attachEsp(target)
         bgUI.StudsOffset = Vector3.new(0, 3, 0)
         bgUI.AlwaysOnTop = true
         bgUI.Adornee = hrp
-        data.items[#data.items+1] = bgUI
+        data.items[#data.items + 1] = bgUI
         local txt = Instance.new("TextLabel", bgUI)
         txt.Size = UDim2.new(1, 0, 1, 0)
         txt.BackgroundTransparency = 1
@@ -331,7 +335,7 @@ local function attachEsp(target)
         txt.Font = Enum.Font.GothamBold
         txt.TextSize = 13
         txt.Text = getLabel()
-        data.conns[#data.conns+1] = target:GetPropertyChangedSignal("DisplayName"):Connect(function()
+        data.conns[#data.conns + 1] = target:GetPropertyChangedSignal("DisplayName"):Connect(function()
             txt.Text = getLabel()
         end)
     end
