@@ -34,30 +34,34 @@ local saOld=nil
 local function startSa()
 	if saOld then return end
 	local mouse=p:GetMouse()
-	local maxDist=1000
+	local FOV=300
+	local FOV2=FOV*FOV
 	local _saTarget=nil
 	local _saLast=0
 	local function getTarget()
 		local now=tick()
 		if now-_saLast<0.05 then return _saTarget end
 		_saLast=now
-		local t,sd=nil,maxDist
-		local my=p.Character
-		local mr=my and my:FindFirstChild("HumanoidRootPart")
-		if not mr then _saTarget=nil;return end
+		local c=workspace.CurrentCamera
+		local vp=c.ViewportSize
+		local cx,cy=vp.X*.5,vp.Y*.5
+		local best,bestDist=nil,FOV2
 		for _,v in ipairs(game.Players:GetPlayers())do
 			if v~=p and v.Character then
 				local h=v.Character:FindFirstChild("Head")
 				local hu=v.Character:FindFirstChild("Humanoid")
-				local tr=v.Character:FindFirstChild("HumanoidRootPart")
-				if h and hu and hu.Health>0 and tr then
-					local d=(mr.Position-tr.Position).Magnitude
-					if d<sd then t=v;sd=d end
+				if h and hu and hu.Health>0 then
+					local pos,vis=c:WorldToViewportPoint(h.Position)
+					if vis then
+						local dx,dy=pos.X-cx,pos.Y-cy
+						local dist=dx*dx+dy*dy
+						if dist<bestDist then bestDist=dist best=v end
+					end
 				end
 			end
 		end
-		_saTarget=t
-		return t
+		_saTarget=best
+		return best
 	end
 	saOld=hookmetamethod(game,"__index",newcclosure(function(self,key)
 		if self==mouse and(key=="Hit"or key=="Target")then
