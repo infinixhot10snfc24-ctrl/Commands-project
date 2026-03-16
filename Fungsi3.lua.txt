@@ -8,23 +8,13 @@ local function startWf()
 	local function getRoot(char)
 		return char and(char:FindFirstChild("HumanoidRootPart")or char:FindFirstChild("Torso")or char:FindFirstChild("UpperTorso"))
 	end
-	local step=0
-	local savedVel=Vector3.zero
-	wfConn=rs.RenderStepped:Connect(function()
-		local char=p.Character
-		local root=getRoot(char)
-		if not root then step=0;return end
-		if step==0 then
-			savedVel=root.Velocity
-			root.Velocity=savedVel*10000+Vector3.new(0,10000,0)
-			step=1
-		elseif step==1 then
-			root.Velocity=savedVel
-			step=2
-		else
-			root.Velocity=savedVel+Vector3.new(0,0.1,0)
-			step=0
-		end
+	wfConn=rs.Heartbeat:Connect(function()
+		local root=getRoot(p.Character)
+		if not root then return end
+		local v=root.Velocity
+		root.Velocity=v*10000
+		rs.RenderStepped:Wait()
+		root.Velocity=v
 	end)
 end
 local function stopWf()
