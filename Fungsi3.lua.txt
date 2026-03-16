@@ -15,14 +15,14 @@ local function startWf()
 		local root=getRoot(char)
 		if not root then step=0;return end
 		if step==0 then
-			savedVel=root.AssemblyLinearVelocity
-			root.AssemblyLinearVelocity=savedVel*10000+Vector3.new(0,10000,0)
+			savedVel=root.Velocity
+			root.Velocity=savedVel*10000+Vector3.new(0,10000,0)
 			step=1
 		elseif step==1 then
-			root.AssemblyLinearVelocity=savedVel
+			root.Velocity=savedVel
 			step=2
 		else
-			root.AssemblyLinearVelocity=savedVel+Vector3.new(0,0.1,0)
+			root.Velocity=savedVel+Vector3.new(0,0.1,0)
 			step=0
 		end
 	end)
