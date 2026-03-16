@@ -82,8 +82,10 @@ local origFog = nil  -- lazy: dicapture saat startNf dipanggil
 local nfActive = false
 local nfConn = nil
 local function startNf()
-	origFog = lighting.FogEnd
-	nfActive = true
+	if not nfActive then
+		origFog = lighting.FogEnd
+		nfActive = true
+	end
 	lighting.FogEnd = 1e9
 	if nfConn then nfConn:Disconnect() end
 	nfConn = lighting:GetPropertyChangedSignal("FogEnd"):Connect(function()
