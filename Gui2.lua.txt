@@ -268,6 +268,164 @@ _hookStats()
 
 
 
+local warnOpen = false
+
+local warnOverlay = _N("Frame", sg)
+warnOverlay.Size = _U(1,0,1,0)
+warnOverlay.BackgroundTransparency = 1
+warnOverlay.BackgroundColor3 = _C(0,0,0)
+warnOverlay.ZIndex = 30
+warnOverlay.Visible = false
+
+local warnFrame = _N("Frame", warnOverlay)
+warnFrame.Size = _U(0,0,0,0)
+warnFrame.Position = _U(0.5,0,0.42,0)
+warnFrame.AnchorPoint = Vector2.new(0.5,0.5)
+warnFrame.BackgroundColor3 = _C(13,13,18)
+warnFrame.ClipsDescendants = true
+warnFrame.ZIndex = 31
+_N("UICorner", warnFrame).CornerRadius = UDim.new(0,16)
+local wfStroke = _N("UIStroke", warnFrame)
+wfStroke.Color = _C(220,80,80); wfStroke.Thickness = 1.5
+local wfGrad = _N("UIGradient", warnFrame)
+wfGrad.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, _C(25,15,15)),
+	ColorSequenceKeypoint.new(1, _C(13,13,18)),
+}
+wfGrad.Rotation = 90
+
+local warnIcon = _N("TextLabel", warnFrame)
+warnIcon.Size = _U(1,0,0,40)
+warnIcon.Position = _U(0,0,0,16)
+warnIcon.BackgroundTransparency = 1
+warnIcon.Text = "⚠"
+warnIcon.TextColor3 = _C(255,180,0)
+warnIcon.Font = _GB
+warnIcon.TextSize = 28
+warnIcon.ZIndex = 32
+
+local warnTitle = _N("TextLabel", warnFrame)
+warnTitle.Size = _U(1,-32,0,22)
+warnTitle.Position = _U(0,16,0,58)
+warnTitle.BackgroundTransparency = 1
+warnTitle.Text = "HOOK WARNING"
+warnTitle.TextColor3 = _C(255,80,80)
+warnTitle.Font = _GB
+warnTitle.TextSize = 13
+warnTitle.TextXAlignment = Enum.TextXAlignment.Center
+warnTitle.ZIndex = 32
+local wfTitleGrad = _N("UIGradient", warnTitle)
+wfTitleGrad.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, _C(255,100,100)),
+	ColorSequenceKeypoint.new(1, _C(255,60,60)),
+}
+wfTitleGrad.Rotation = 0
+
+local warnDivider = _N("Frame", warnFrame)
+warnDivider.Size = _U(1,-32,0,1)
+warnDivider.Position = _U(0,16,0,86)
+warnDivider.BackgroundColor3 = _C(80,30,30)
+warnDivider.BorderSizePixel = 0
+warnDivider.ZIndex = 32
+
+local warnBody = _N("TextLabel", warnFrame)
+warnBody.Size = _U(1,-32,0,52)
+warnBody.Position = _U(0,16,0,96)
+warnBody.BackgroundTransparency = 1
+warnBody.Text = "This command is using hook which\ncan make your account banned."
+warnBody.TextColor3 = _C(200,180,180)
+warnBody.Font = _GS
+warnBody.TextSize = 12
+warnBody.TextXAlignment = Enum.TextXAlignment.Center
+warnBody.TextWrapped = true
+warnBody.ZIndex = 32
+
+local warnBtnRow = _N("Frame", warnFrame)
+warnBtnRow.Size = _U(1,-32,0,42)
+warnBtnRow.Position = _U(0,16,0,156)
+warnBtnRow.BackgroundTransparency = 1
+warnBtnRow.ZIndex = 32
+local wbLayout = _N("UIListLayout", warnBtnRow)
+wbLayout.FillDirection = Enum.FillDirection.Horizontal
+wbLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+wbLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+wbLayout.Padding = UDim.new(0,12)
+
+local function makeWarnBtn(label, bg, fg)
+	local btn = _N("TextButton", warnBtnRow)
+	btn.Size = _U(0,130,0,36)
+	btn.BackgroundColor3 = bg
+	btn.AutoButtonColor = false
+	btn.Text = label
+	btn.TextColor3 = fg
+	btn.Font = _GB
+	btn.TextSize = 13
+	btn.ZIndex = 33
+	_N("UICorner", btn).CornerRadius = UDim.new(0,10)
+	local tw = TweenInfo.new(0.12)
+	local darken = _C(bg.R*200, bg.G*200, bg.B*200)
+	btn.MouseEnter:Connect(function()
+		ts:Create(btn, tw, {BackgroundColor3 = darken}):Play()
+	end)
+	btn.MouseLeave:Connect(function()
+		ts:Create(btn, tw, {BackgroundColor3 = bg}):Play()
+	end)
+	return btn
+end
+
+local cancelBtn  = makeWarnBtn("Cancel",   _C(35,35,45),   _C(180,180,200))
+local continueBtn= makeWarnBtn("Continue", _C(180,40,40),  _C(255,255,255))
+
+local function showHookWarn(callback)
+	if warnOpen then return end
+	warnOpen = true
+	warnOverlay.Visible = true
+	warnFrame.Size = _U(0,0,0,0)
+	ts:Create(warnOverlay, TweenInfo.new(0.2), {BackgroundTransparency = 0.55}):Play()
+	ts:Create(warnFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+		{Size = _U(0,310,0,210)}):Play()
+
+	local conns = {}
+	local function close(proceed)
+		if not warnOpen then return end
+		warnOpen = false
+		for _, c in ipairs(conns) do c:Disconnect() end
+		ts:Create(warnOverlay, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+		ts:Create(warnFrame, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+			{Size = _U(0,0,0,0)}):Play()
+		task.delay(0.25, function()
+			warnOverlay.Visible = false
+			if proceed then callback() end
+		end)
+	end
+
+	conns[#conns+1] = continueBtn.MouseButton1Click:Connect(function() close(true) end)
+	conns[#conns+1] = cancelBtn.MouseButton1Click:Connect(function() close(false) end)
+end
+
+getgenv().DeltaCmds.showHookWarn = showHookWarn
+
+local HOOK_CMDS = {
+	lockwalkspeed=true, lockws=true,
+	lockjumppower=true, lockjp=true, ljp=true,
+	antikick=true,
+}
+local function _hookWarnCmds()
+	for _, entry in ipairs(getgenv().DeltaCmds.Cmds) do
+		for _, alias in ipairs(entry.aliases) do
+			if HOOK_CMDS[alias] and entry.fn then
+				local orig = entry.fn
+				entry.fn = function(...)
+					local args = {...}
+					showHookWarn(function() orig(table.unpack(args)) end)
+				end
+				break
+			end
+		end
+	end
+end
+_hookWarnCmds()
+
 local aliasMap = {}
 for _, entry in ipairs(getgenv().DeltaCmds.Cmds) do
 	for _, alias in ipairs(entry.aliases) do
@@ -278,14 +436,41 @@ end
 for _, pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do
 	local cmdEntry = aliasMap[pickerDef.cmdAlias]
 	if cmdEntry then
-		cmdEntry.fn = function()
-			task.delay(0.32, function()
-				showPicker(pickerDef, function(value)
-					if value ~= nil then
-						pickerDef.onPick(value)
-					end
+		local isGodmode   = pickerDef.cmdAlias == "godmode"
+		local isSilentaim = pickerDef.cmdAlias == "silentaim"
+		if isSilentaim then
+			-- silentaim selalu pakai hook, warn muncul sebelum picker
+			cmdEntry.fn = function()
+				showHookWarn(function()
+					task.delay(0.32, function()
+						showPicker(pickerDef, function(value)
+							if value ~= nil then pickerDef.onPick(value) end
+						end)
+					end)
 				end)
-			end)
+			end
+		elseif isGodmode then
+			-- godmode: warn hanya muncul kalau pilih "hook"
+			cmdEntry.fn = function()
+				task.delay(0.32, function()
+					showPicker(pickerDef, function(value)
+						if value == nil then return end
+						if value == "hook" then
+							showHookWarn(function() pickerDef.onPick(value) end)
+						else
+							pickerDef.onPick(value)
+						end
+					end)
+				end)
+			end
+		else
+			cmdEntry.fn = function()
+				task.delay(0.32, function()
+					showPicker(pickerDef, function(value)
+						if value ~= nil then pickerDef.onPick(value) end
+					end)
+				end)
+			end
 		end
 	end
 
