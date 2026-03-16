@@ -21,54 +21,76 @@ local function stopWf()
 	if wfConn then wfConn:Disconnect();wfConn=nil end
 end
 local saOld=nil
-local function startSa()
-	if saOld then return end
+local saGui=nil
+local saSettings={Enabled=false, FOV=300, TargetPart="Head"}
+
+local function saDrawCircle(fov)
+	if saGui then saGui:Destroy(); saGui=nil end
+	local G=p:WaitForChild("PlayerGui")
+	local sg=Instance.new("ScreenGui",G)
+	sg.Name="DeltaSAFov"; sg.IgnoreGuiInset=true; sg.ResetOnSpawn=false
+	saGui=sg
+	local c=Instance.new("Frame",sg)
+	c.AnchorPoint=Vector2.new(.5,.5)
+	c.Position=UDim2.new(.5,0,.5,0)
+	c.Size=UDim2.fromOffset(fov*2,fov*2)
+	c.BackgroundTransparency=1
+	local u=Instance.new("UICorner",c); u.CornerRadius=UDim.new(1,0)
+	local s=Instance.new("UIStroke",c); s.Thickness=2; s.Color=Color3.fromRGB(255,255,255)
+end
+
+local function stopSa()
+	saSettings.Enabled=false
+	if saGui then saGui:Destroy(); saGui=nil end
+	if not saOld then return end
+	hookmetamethod(game,"__index",saOld)
+	saOld=nil
+end
+
+local function startSa(targetPart, fov)
+	stopSa()
+	saSettings.Enabled=true
+	saSettings.TargetPart=targetPart or "Head"
+	saSettings.FOV=fov or 300
+	saDrawCircle(saSettings.FOV)
 	local mouse=p:GetMouse()
-	local FOV=300
-	local FOV2=FOV*FOV
-	local _saTarget=nil
-	local _saLast=0
-	local function getTarget()
-		local now=tick()
-		if now-_saLast<0.05 then return _saTarget end
-		_saLast=now
+	local function GetTarget()
 		local c=workspace.CurrentCamera
-		local vp=c.ViewportSize
-		local cx,cy=vp.X*.5,vp.Y*.5
-		local best,bestDist=nil,FOV2
-		for _,v in ipairs(game.Players:GetPlayers())do
-			if v~=p and v.Character then
-				local h=v.Character:FindFirstChild("Head")
-				local hu=v.Character:FindFirstChild("Humanoid")
-				if h and hu and hu.Health>0 then
-					local pos,vis=c:WorldToViewportPoint(h.Position)
-					if vis then
-						local dx,dy=pos.X-cx,pos.Y-cy
-						local dist=dx*dx+dy*dy
-						if dist<bestDist then bestDist=dist best=v end
+		if not c then return end
+		local center=c.ViewportSize/2
+		local closest=nil
+		local dist=saSettings.FOV
+		for _,pl in ipairs(game.Players:GetPlayers())do
+			local ch=pl.Character
+			if pl~=p and ch then
+				local part=ch:FindFirstChild(saSettings.TargetPart)
+				local hum=ch:FindFirstChildOfClass("Humanoid")
+				if part and hum and hum.Health>0 then
+					local pos,on=c:WorldToScreenPoint(part.Position)
+					if on then
+						local d=(Vector2.new(pos.X,pos.Y)-center).Magnitude
+						if d<dist then dist=d; closest=part end
 					end
 				end
 			end
 		end
-		_saTarget=best
-		return best
+		return closest
 	end
 	saOld=hookmetamethod(game,"__index",newcclosure(function(self,key)
-		if self==mouse and(key=="Hit"or key=="Target")then
-			local t=getTarget()
-			if t then
-				local h=t.Character and t.Character:FindFirstChild("Head")
-				if h then return key=="Hit"and h.CFrame or h end
+		if not checkcaller() and self==mouse and saSettings.Enabled
+			and (key=="Hit" or key=="Target" or key=="UnitRay") then
+			local target=GetTarget()
+			local c=workspace.CurrentCamera
+			if target and target:IsDescendantOf(workspace) and c then
+				local dir=target.Position-c.CFrame.Position
+				dir=dir.Magnitude>0 and dir.Unit or c.CFrame.LookVector
+				if key=="Target" then return target end
+				if key=="Hit" then return CFrame.new(target.Position,target.Position+dir) end
+				if key=="UnitRay" then return Ray.new(c.CFrame.Position,dir) end
 			end
 		end
 		return saOld(self,key)
 	end))
-end
--- FIX: stopSa untuk restore hook — tanpa ini silentaim tidak bisa dimatiin
-local function stopSa()
-	if not saOld then return end
-	hookmetamethod(game,"__index",saOld)
-	saOld=nil
 end
 local tpwConn=nil
 local tpwCharConn=nil
@@ -216,8 +238,8 @@ end
 local newCmds={
 	{aliases={"walkfling","wf"},              fn=function() startWf() end},
 	{aliases={"unwalkfling","unwf"},          fn=function() stopWf() end},
-	{aliases={"silentaim"},            fn=function() startSa() end},
-	{aliases={"unsilentaim"},          fn=function() stopSa()  end},
+	{aliases={"silentaim"},                args="[fov]", fn=function(v) startSa(saSettings.TargetPart, tonumber(v) or 300) end},
+	{aliases={"unsilentaim"},              fn=function() stopSa() end},
 	{aliases={"tpwalkspeed","tpwalk"},        args="[speed]", fn=function(v) startTpw(tonumber(v)) end},
 	{aliases={"untpwalkspeed","untpwalk"},    fn=function() stopTpw() end},
 	{aliases={"vehiclefly","vfly"},           args="[speed]", fn=function(v) getgenv().DeltaCmds.startVf(tonumber(v)) end,
@@ -237,6 +259,20 @@ end
 for i,entry in ipairs(newCmds)do
 	table.insert(cmds,insertAt+i-1,entry)
 end
+
+getgenv().DeltaCmds.Pickers = getgenv().DeltaCmds.Pickers or {}
+table.insert(getgenv().DeltaCmds.Pickers,{
+	cmdAlias  = "silentaim",
+	stopAlias = "unsilentaim",
+	title     = "SILENT AIM",
+	subtitle  = "Select target part",
+	buttons   = {
+		{label="HEAD",    sub="Aim at head",           accent=Color3.fromRGB(0,170,255),  value="Head"},
+		{label="HRP",     sub="Aim at HumanoidRootPart", accent=Color3.fromRGB(160,80,255), value="HumanoidRootPart"},
+	},
+	onPick = function(part) startSa(part, saSettings.FOV) end,
+	stopFn = stopSa,
+})
 local adminActive=false
 local adminChatConn=nil
 local function startAdmin()
