@@ -409,15 +409,15 @@ local function startFling(name)
 	local s=tick()
 	repeat
 		r.CFrame=tr.CFrame*CFrame.new(math.random(-2,2),math.random(-1,2),math.random(-2,2))
-		r.AssemblyLinearVelocity=Vector3.new(9e7,9e8,9e7)
-		r.AssemblyAngularVelocity=Vector3.new(9e8,9e8,9e8)
+		r.Velocity=Vector3.new(9e7,9e8,9e7)
+		r.RotVelocity=Vector3.new(9e8,9e8,9e8)
 		task.wait()
-	until tr.AssemblyLinearVelocity.Magnitude>500 or not t.Parent or not tc.Parent or h.Health<=0 or tick()-s>2
+	until tr.Velocity.Magnitude>500 or not t.Parent or not tc.Parent or h.Health<=0 or tick()-s>2
 	bv:Destroy()
 	h:SetStateEnabled(15,true)
 	cam.CameraSubject=h
-	r.AssemblyLinearVelocity=Vector3.zero
-	r.AssemblyAngularVelocity=Vector3.zero
+	r.Velocity=Vector3.zero
+	r.RotVelocity=Vector3.zero
 	r.CFrame=o*CFrame.new(0,0.5,0)
 	h:ChangeState(8)
 end
