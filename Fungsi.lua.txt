@@ -293,12 +293,15 @@ end
 local function stopInfJump()
 	if ijConn then ijConn:Disconnect(); ijConn = nil end
 end
+local fbActive = false
 local function startFullbright()
-	-- FIX: capture saat command dipanggil, bukan saat script load
-	origAmbient = lighting.Ambient
-	origOutdoor = lighting.OutdoorAmbient
-	origBright  = lighting.Brightness
-	origShadows = lighting.GlobalShadows
+	if not fbActive then
+		origAmbient = lighting.Ambient
+		origOutdoor = lighting.OutdoorAmbient
+		origBright  = lighting.Brightness
+		origShadows = lighting.GlobalShadows
+		fbActive = true
+	end
 	lighting.Ambient = Color3.new(1, 1, 1)
 	lighting.OutdoorAmbient = Color3.new(1, 1, 1)
 	lighting.Brightness = 2
@@ -306,6 +309,8 @@ local function startFullbright()
 	lighting.FogEnd = 100000
 end
 local function stopFullbright()
+	if not fbActive then return end
+	fbActive = false
 	lighting.Ambient = origAmbient
 	lighting.OutdoorAmbient = origOutdoor
 	lighting.Brightness = origBright
@@ -607,7 +612,6 @@ getgenv().DeltaCmds.Cmds = {
 	{ aliases = {"hitbox", "hb"},                         args = "[size] [transparency]", fn = function(v, v2)
 		for _, c in ipairs(hitboxConns) do c:Disconnect() end
 		hitboxConns = {}
-		hitboxOrigSizes = {}
 		if hitboxNccFolder then hitboxNccFolder:Destroy() end
 		hitboxNccFolder = Instance.new("Folder", workspace)
 		hitboxNccFolder.Name = "DeltaHitboxNCC"
@@ -625,6 +629,8 @@ getgenv().DeltaCmds.Cmds = {
 		end
 		local function monitor(hrp)
 			local sz = Vector3.new(size, size, size)
+			-- simpan origSize hanya kalau belum pernah disimpan sebelumnya
+			-- supaya rehitbox tanpa unhitbox tidak overwrite ukuran asli
 			if not hitboxOrigSizes[hrp] then
 				hitboxOrigSizes[hrp] = hrp.Size
 			end
