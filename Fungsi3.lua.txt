@@ -1,5 +1,9 @@
 repeat task.wait() until getgenv().DeltaCmds and getgenv().DeltaCmds.Cmds
-local p=game.Players.LocalPlayer
+local p=getgenv().DeltaCmds.Player
+local Players=getgenv().DeltaCmds.Players
+local function isActive(id) return getgenv().DeltaCmds._active and getgenv().DeltaCmds._active[id] end
+local function setActive(id) if getgenv().DeltaCmds._active then getgenv().DeltaCmds._active[id]=true end end
+local function clearActive(id) if getgenv().DeltaCmds._active then getgenv().DeltaCmds._active[id]=nil end end
 local rs=game:GetService("RunService")
 local cam=workspace.CurrentCamera
 local wfConn
@@ -49,7 +53,7 @@ local function startSa(targetPart, arg)
 		local myRoot=myChar and myChar:FindFirstChild("HumanoidRootPart")
 		if saSettings.Mode=="near" then
 			local closest,bestDist=nil,math.huge
-			for _,pl in ipairs(game.Players:GetPlayers()) do
+			for _,pl in ipairs(Players:GetPlayers()) do
 				local ch=pl.Character
 				if pl~=p and ch and myRoot then
 					local part=ch:FindFirstChild(saSettings.TargetPart)
@@ -67,7 +71,7 @@ local function startSa(targetPart, arg)
 			if not c then return end
 			local center=c.ViewportSize/2
 			local closest,dist=nil,saSettings.FOV
-			for _,pl in ipairs(game.Players:GetPlayers()) do
+			for _,pl in ipairs(Players:GetPlayers()) do
 				local ch=pl.Character
 				if pl~=p and ch then
 					local part=ch:FindFirstChild(saSettings.TargetPart)
@@ -101,6 +105,7 @@ local function startSa(targetPart, arg)
 end
 local tpwConn, tpwCharConn
 local function startTpw(spd)
+	if isActive("tpw") then return end; setActive("tpw")
 	if tpwConn then tpwConn:Disconnect() end
 	if tpwCharConn then tpwCharConn:Disconnect() end
 	local s=spd or 0.5
@@ -112,11 +117,13 @@ local function startTpw(spd)
 	end)
 end
 local function stopTpw()
+	clearActive("tpw")
 	if tpwConn    then tpwConn:Disconnect();    tpwConn    = nil end
 	if tpwCharConn then tpwCharConn:Disconnect(); tpwCharConn = nil end
 end
 local vfConn, vfCharConn
 local function stopVf()
+	clearActive("vf")
 	if vfConn    then vfConn:Disconnect();    vfConn    = nil end
 	if vfCharConn then vfCharConn:Disconnect(); vfCharConn = nil end
 	local char=p.Character
@@ -129,6 +136,7 @@ local function stopVf()
 	end
 end
 getgenv().DeltaCmds.startVf=function(spd)
+	if isActive("vf") then return end; setActive("vf")
 	stopVf()
 	local speed=spd or 50
 	local function doFly(char)
@@ -195,7 +203,7 @@ local function startInvis()
 	end)
 end
 local function stopInvis()
-	invisActive=false
+	clearActive("invis"); invisActive=false
 	if invisConn    then invisConn:Disconnect();    invisConn    = nil end
 	if invisCharConn then invisCharConn:Disconnect(); invisCharConn = nil end
 	for _,part in pairs(invisVisibleParts) do if part and part.Parent then part.Transparency=0 end end
