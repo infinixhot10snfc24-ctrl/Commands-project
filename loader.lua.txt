@@ -45,6 +45,25 @@ do
 	env.DeltaCleanup = env.DeltaCleanup or {}
 	env.DeltaCache = {}
 
+	local function getService(name)
+		if env.getService then
+			local ok,res = pcall(env.getService,name)
+			if ok and res then return res end
+		end
+
+		local s = game:FindService(name)
+		if s then return s end
+
+		local t = 0
+		repeat
+			task.wait(0.1)
+			t += 0.1
+			s = game:FindService(name)
+		until s or t > 5
+
+		return s
+	end
+
 	local onlineVersions = {}
 	local localVersions = {}
 	local versionsOK = false
@@ -64,9 +83,10 @@ do
 		print("Reason:",reason)
 		print("Module:",moduleName)
 		print("Detail:",tostring(errDetail))
+		warn("[Loader UI ERROR]: "..tostring(moduleName).." -> "..tostring(errDetail))
 
 		if ui.status then
-			ui.status.Text = "Error in "..tostring(moduleName)
+			ui.status.Text = moduleName.."\n"..string.sub(tostring(errDetail),1,80)
 			ui.status.TextColor3 = Color3.fromRGB(255,80,80)
 		end
 
@@ -74,13 +94,21 @@ do
 			ui.barFill.BackgroundColor3 = Color3.fromRGB(255,0,0)
 		end
 
-		task.wait(0.2)
+		task.wait(10)
 
-		if ui.status then
-			ui.status.Text = reason.."\n"..tostring(moduleName)
+		if ui.frame then
+			ts:Create(ui.frame,TweenInfo.new(0.4,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)}):Play()
 		end
 
-		task.wait(5)
+		if ui.bg then
+			ts:Create(ui.bg,TweenInfo.new(0.4),{BackgroundTransparency=1}):Play()
+		end
+
+		task.wait(0.4)
+
+		if ui.sg then
+			pcall(function() ui.sg:Destroy() end)
+		end
 
 		env.DeltaObjects = {}
 		env.DeltaCleanup = {}
@@ -178,23 +206,13 @@ do
 		end
 	end
 
-	local function updateStatus(txt,color)
-		if ui.status then
-			ui.status.Text = txt
-			if color then
-				ui.status.TextColor3 = color
-			end
-		end
-	end
-
 	local function validate(data)
 		if type(data) ~= "string" then return nil end
 		if #data < 80 then return nil end
 		local lower = string.lower(data)
 		if string.find(lower,"<html") or string.find(lower,"<!doctype") then return nil end
 		if not string.find(data,"function") then return nil end
-		local func = loadstring(data)
-		return func
+		return loadstring(data)
 	end
 
 	local function downloadScript(url,name)
@@ -230,7 +248,6 @@ do
 			if done and f then
 				print("[Loader] Success -> "..name)
 				env.DeltaCache[url]=result
-				updateStatus("Updated: "..name, Color3.fromRGB(0,200,120))
 				return result,f
 			end
 		end
@@ -296,11 +313,8 @@ do
 						if onlineHash and localHash == onlineHash then
 							code,func = loadLocal(s.name)
 						else
-							updateStatus("Updating: "..s.name, Color3.fromRGB(255,200,0))
 							pcall(function()
-								if isfile(s.name) then
-									delfile(s.name)
-								end
+								if isfile(s.name) then delfile(s.name) end
 							end)
 						end
 					end
@@ -335,18 +349,8 @@ do
 			task.wait(0.05)
 		end
 
-		if finished<total then
-			for i,v in ipairs(states) do
-				if not v then
-					return fail("Timeout",scripts[i].name,"Thread stuck")
-				end
-			end
-		end
-
-		for i = 1, #scripts do
-			while not states[i] do
-				task.wait()
-			end
+		for i=1,#scripts do
+			while not states[i] do task.wait() end
 		end
 
 		for i,s in ipairs(scripts) do
@@ -365,16 +369,25 @@ do
 				if ok then
 					success=true
 					break
-				else
-					lastErr=err
-					local newCode,newFunc=downloadScript(s.url,s.name)
-					if newCode and newFunc then
-						r.func=newFunc
-						if hasFileAPI then
-							pcall(function() writefile(s.name,newCode) end)
-						end
+				end
+
+				lastErr=err
+
+				if hasFileAPI then
+					pcall(function()
+						if isfile(s.name) then delfile(s.name) end
+					end)
+				end
+
+				local newCode,newFunc=downloadScript(s.url,s.name)
+				if newCode and newFunc then
+					r.func=newFunc
+					if hasFileAPI then
+						pcall(function() writefile(s.name,newCode) end)
 					end
 				end
+
+				task.wait(0.1)
 			end
 
 			if not success then
