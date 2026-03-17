@@ -219,7 +219,7 @@ end
 local function startAl(fov)
 	if isActive("al") then return end; setActive("al")
 	stopAl()
-	local F=fov or 120; local F2=F*F; local A=0.3; local S=0.015; local M=1000; local PR=0.08
+	local F=fov or 120; local F2=F*F; local A=0.4; local S=0.015; local M=1000; local PR=0.08
 	local L=p; local C=cam
 	local G=L:WaitForChild("PlayerGui")
 	local g=Instance.new("ScreenGui"); g.IgnoreGuiInset=true; g.ResetOnSpawn=false; g.Parent=G; alGui=g
@@ -273,7 +273,7 @@ local function startAl(fov)
 		return cl
 	end
 	alHB=rs.Heartbeat:Connect(function(dt) d+=dt; if d>S then d=0; if not ok(t) then t=gcl() end end end)
-	rs:BindToRenderStep("DeltaAimlock",Enum.RenderPriority.Last.Value,function()
+	rs:BindToRenderStep("DeltaAimlock",10000,function()
 		if t and t.Parent then
 			local ro=t.Parent:FindFirstChild("HumanoidRootPart"); local pos=t.Position
 			if ro then local vv=ro.AssemblyLinearVelocity; pos=pos+Vector3.new(vv.X,0,vv.Z)*PR end
