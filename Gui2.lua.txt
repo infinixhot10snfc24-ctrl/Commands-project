@@ -332,7 +332,7 @@ local warnBody = _N("TextLabel", warnFrame)
 warnBody.Size = _U(1,-32,0,52)
 warnBody.Position = _U(0,16,0,96)
 warnBody.BackgroundTransparency = 1
-warnBody.Text = "This command is using hook which\ncan make your account banned."
+warnBody.Text = "This script uses hooking methods that may\nbe detected by some games.\n\nYour account could be at risk. It is\nrecommended to test this using an\nalternate account first."
 warnBody.TextColor3 = _C(200,180,180)
 warnBody.Font = _GS
 warnBody.TextSize = 12
@@ -383,7 +383,7 @@ local function showHookWarn(callback)
 	warnFrame.Size = _U(0,0,0,0)
 	ts:Create(warnOverlay, TweenInfo.new(0.2), {BackgroundTransparency = 0.55}):Play()
 	ts:Create(warnFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{Size = _U(0,310,0,210)}):Play()
+		{Size = _U(0,320,0,248)}):Play()
 
 	local conns = {}
 	local function close(proceed)
@@ -405,19 +405,6 @@ end
 
 getgenv().DeltaCmds.showHookWarn = showHookWarn
 
-local function _hookWarnCmds()
-	for _, entry in ipairs(getgenv().DeltaCmds.Cmds) do
-		if entry.hook and entry.fn then
-			local orig = entry.fn
-			entry.fn = function(...)
-				local args = {...}
-				showHookWarn(function() orig(table.unpack(args)) end)
-			end
-		end
-	end
-end
-_hookWarnCmds()
-
 local aliasMap = {}
 for _, entry in ipairs(getgenv().DeltaCmds.Cmds) do
 	for _, alias in ipairs(entry.aliases) do
@@ -428,20 +415,10 @@ end
 for _, pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do
 	local cmdEntry = aliasMap[pickerDef.cmdAlias]
 	if cmdEntry then
-		if pickerDef.hookBeforePicker then
-			-- warn dulu sebelum picker dibuka (command selalu pakai hook)
-			cmdEntry.fn = function()
-				showHookWarn(function()
-					task.delay(0.32, function()
-						showPicker(pickerDef, function(value)
-							if value ~= nil then pickerDef.onPick(value) end
-						end)
-					end)
-				end)
-			end
-		elseif pickerDef.hookOnValue then
-			-- warn hanya kalau value yang dipilih == hookOnValue
-			cmdEntry.fn = function()
+		local origFn = cmdEntry.fn
+		if pickerDef.hookOnValue then
+			-- picker biasa, warn hanya pada value tertentu
+			cmdEntry.fn = function(...)
 				task.delay(0.32, function()
 					showPicker(pickerDef, function(value)
 						if value == nil then return end
@@ -451,6 +428,23 @@ for _, pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do
 							pickerDef.onPick(value)
 						end
 					end)
+				end)
+			end
+		elseif cmdEntry.hook then
+			-- command pakai hook: kalau ada arg → warn → origFn(arg)
+			--                     kalau tanpa arg → warn → buka picker
+			cmdEntry.fn = function(...)
+				local args = {...}
+				showHookWarn(function()
+					if args[1] then
+						origFn(table.unpack(args))
+					else
+						task.delay(0.32, function()
+							showPicker(pickerDef, function(value)
+								if value ~= nil then pickerDef.onPick(value) end
+							end)
+						end)
+					end
 				end)
 			end
 		else
@@ -466,8 +460,21 @@ for _, pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do
 
 	if pickerDef.stopAlias and pickerDef.stopFn then
 		local stopEntry = aliasMap[pickerDef.stopAlias]
-		if stopEntry then
-			stopEntry.fn = pickerDef.stopFn
+		if stopEntry then stopEntry.fn = pickerDef.stopFn end
+	end
+end
+
+-- wrap warn untuk command hook yang TIDAK ada di Pickers
+local pickerAliases = {}
+for _, pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do
+	pickerAliases[pickerDef.cmdAlias] = true
+end
+for _, entry in ipairs(getgenv().DeltaCmds.Cmds) do
+	if entry.hook and entry.fn and not pickerAliases[entry.aliases[1]] then
+		local orig = entry.fn
+		entry.fn = function(...)
+			local args = {...}
+			showHookWarn(function() orig(table.unpack(args)) end)
 		end
 	end
 end
