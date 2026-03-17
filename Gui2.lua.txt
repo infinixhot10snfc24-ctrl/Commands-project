@@ -185,7 +185,7 @@ end
 
 local function makeACGui()
 	local UIS,GS=game:GetService("UserInputService"),game:GetService("GuiService")
-	local pl=game.Players.LocalPlayer
+	local pl=getgenv().DeltaCmds and getgenv().DeltaCmds.Player or game:GetService("Players").LocalPlayer
 	if pl.PlayerGui:FindFirstChild("AC_Panel")then pl.PlayerGui.AC_Panel:Destroy()end
 	local ac=getgenv().DeltaCmds.AC
 	if not ac then return end
@@ -234,7 +234,7 @@ _hookAC()
 
 local function makeStatsGui()
 	local ST=game:GetService("Stats")
-	local pl=game.Players.LocalPlayer
+	local pl=getgenv().DeltaCmds and getgenv().DeltaCmds.Player or game:GetService("Players").LocalPlayer
 	if pl.PlayerGui:FindFirstChild("HUD_All")then pl.PlayerGui.HUD_All:Destroy()end
 	local function mk(c,pa,r)local o=_N(c,pa)for k,v in pairs(r or{})do o[k]=v end return o end
 	local SG=mk("ScreenGui",pl.PlayerGui,{Name="HUD_All",ResetOnSpawn=false})
