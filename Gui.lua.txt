@@ -1,4 +1,4 @@
-local p = game.Players.LocalPlayer
+local p = getgenv().DeltaCmds and getgenv().DeltaCmds.Player or game:GetService("Players").LocalPlayer
 local ts = game:GetService("TweenService")
 local uis = game:GetService("UserInputService")
 local _C=Color3.fromRGB;local _U=UDim2.new;local _N=Instance.new;local _GB=Enum.Font.GothamBold;local _GS=Enum.Font.GothamSemibold;local _G=Enum.Font.Gotham;local _TX=Enum.TextXAlignment;local _UI=Enum.UserInputType
