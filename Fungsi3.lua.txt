@@ -204,7 +204,7 @@ end
 local newCmds={
 	{aliases={"walkfling","wf"},              fn=startWf},
 	{aliases={"unwalkfling","unwf"},          fn=stopWf},
-	{aliases={"silentaim"},                  args="[fov/near]", fn=function(v) startSa(saSettings.TargetPart,v) end},
+	{aliases={"silentaim"},                  args="[fov/near]", fn=function(v) startSa(saSettings.TargetPart, v or "near") end, hook=true},
 	{aliases={"unsilentaim"},                 fn=stopSa},
 	{aliases={"tpwalkspeed","tpwalk"},        args="[speed]",    fn=function(v) startTpw(tonumber(v)) end},
 	{aliases={"untpwalkspeed","untpwalk"},    fn=stopTpw},
@@ -239,6 +239,9 @@ table.insert(getgenv().DeltaCmds.Pickers,{
 		{label="HEAD", sub="Aim at head",             accent=Color3.fromRGB(0,170,255),  value="Head"},
 		{label="HRP",  sub="Aim at HumanoidRootPart", accent=Color3.fromRGB(160,80,255), value="HumanoidRootPart"},
 	},
-	onPick=function(part) startSa(part, saSettings.Mode=="near" and "near" or tostring(saSettings.FOV)) end,
+	onPick=function(part)
+		local arg = saSettings.Mode=="near" and "near" or tostring(saSettings.FOV)
+		startSa(part, arg)
+	end,
 	stopFn=stopSa,
 })
