@@ -4,42 +4,57 @@ local rs = game:GetService("RunService")
 local lighting = game:GetService("Lighting")
 local cam = workspace.CurrentCamera
 local vwConn = nil
-local viewRemoveConn = nil
-local fcConn = nil
-local fcCharConn = nil
-local fcPart = nil
-local antiflingConn = nil
+local vwRemoveConn = nil
+local vwCharConn = nil
+local vwPart = nil
 local function stopVw()
 	if vwConn then vwConn:Disconnect(); vwConn = nil end
-	if viewRemoveConn then viewRemoveConn:Disconnect(); viewRemoveConn = nil end
+	if vwRemoveConn then vwRemoveConn:Disconnect(); vwRemoveConn = nil end
+	if vwCharConn then vwCharConn:Disconnect(); vwCharConn = nil end
+	if vwPart then vwPart:Destroy(); vwPart = nil end
+	cam.CameraType = Enum.CameraType.Custom
 	local char = p.Character
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
-	if hum then
-		cam.CameraSubject = hum
-		cam.CameraType = Enum.CameraType.Custom
-	end
+	if hum then cam.CameraSubject = hum end
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	if root then root.Anchored = false end
 end
 local function startVw(name)
 	stopVw()
 	local target = getgenv().DeltaCmds.resolveTargets(name)[1]
 	if not target then return end
-	local function applySubject()
-		local char = target.Character
-		local hum = char and char:FindFirstChildOfClass("Humanoid")
-		if hum then
-			cam.CameraSubject = hum
-			cam.CameraType = Enum.CameraType.Custom
-		end
-	end
-	applySubject()
-	vwConn = target.CharacterAdded:Connect(function()
-		task.wait(0.1)
-		applySubject()
+	local part = Instance.new("Part")
+	part.Anchored = true
+	part.CanCollide = false
+	part.Transparency = 1
+	part.Size = Vector3.new(1,1,1)
+	part.Parent = workspace
+	vwPart = part
+	cam.CameraSubject = part
+	cam.CameraType = Enum.CameraType.Custom
+	local char = p.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	if root then root.Anchored = true end
+	vwCharConn = p.CharacterAdded:Connect(function(c)
+		local r = c:WaitForChild("HumanoidRootPart", 5)
+		if r then r.Anchored = true end
 	end)
-	viewRemoveConn = game.Players.PlayerRemoving:Connect(function(pl)
+	vwConn = rs.Heartbeat:Connect(function()
+		if not vwPart or not vwPart.Parent then return end
+		local tc = target.Character
+		local tr = tc and tc:FindFirstChild("HumanoidRootPart")
+		if tr then
+			vwPart.CFrame = tr.CFrame
+		end
+	end)
+	vwRemoveConn = game.Players.PlayerRemoving:Connect(function(pl)
 		if pl == target then stopVw() end
 	end)
 end
+local fcConn = nil
+local fcCharConn = nil
+local fcPart = nil
+local antiflingConn = nil
 local function stopFc()
 	if fcConn then fcConn:Disconnect(); fcConn = nil end
 	if fcCharConn then fcCharConn:Disconnect(); fcCharConn = nil end
@@ -477,8 +492,8 @@ getgenv().DeltaCmds.AC = {
 }
 
 local newCmds = {
-	{ aliases = {"view", "spectate"},     args = "[player]", fn = function(v) if v then startVw(v) else stopVw() end end },
-	{ aliases = {"unview", "unspectate"}, fn = function()  stopVw() end },
+	{ aliases = {"view", "watch"},        args = "[player]", fn = function(v) if v then startVw(v) else stopVw() end end },
+	{ aliases = {"unview", "unwatch"},    fn = function()  stopVw() end },
 	{ aliases = {"freecam", "fc"},        args = "[speed]", fn = function(v) startFc(tonumber(v)) end,
 	  hud = "speed", hudDefault = 50, hudStart = "startFc", hudStop = "stopFc",
 	  hudOn = {"freecam", "fc"}, hudOff = {"unfreecam", "unfc"} },
