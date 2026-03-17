@@ -22,7 +22,7 @@ local function stopWf()
 end
 local saOld=nil
 local saGui=nil
-local saSettings={Enabled=false, FOV=300, TargetPart="Head"}
+local saSettings={Enabled=false, FOV=300, TargetPart="Head", Mode="fov"}
 
 local function saDrawCircle(fov)
 	if saGui then saGui:Destroy(); saGui=nil end
@@ -47,34 +47,54 @@ local function stopSa()
 	saOld=nil
 end
 
-local function startSa(targetPart, fov)
+local function startSa(targetPart, arg)
 	stopSa()
 	saSettings.Enabled=true
-	saSettings.TargetPart=targetPart or "Head"
-	saSettings.FOV=fov or 300
-	saDrawCircle(saSettings.FOV)
+	saSettings.TargetPart=targetPart or saSettings.TargetPart
+	local isNear=(arg=="near")
+	saSettings.Mode=isNear and "near" or "fov"
+	saSettings.FOV=tonumber(arg) or saSettings.FOV
+	if not isNear then saDrawCircle(saSettings.FOV) end
 	local mouse=p:GetMouse()
 	local function GetTarget()
-		local c=workspace.CurrentCamera
-		if not c then return end
-		local center=c.ViewportSize/2
-		local closest=nil
-		local dist=saSettings.FOV
-		for _,pl in ipairs(game.Players:GetPlayers())do
-			local ch=pl.Character
-			if pl~=p and ch then
-				local part=ch:FindFirstChild(saSettings.TargetPart)
-				local hum=ch:FindFirstChildOfClass("Humanoid")
-				if part and hum and hum.Health>0 then
-					local pos,on=c:WorldToScreenPoint(part.Position)
-					if on then
-						local d=(Vector2.new(pos.X,pos.Y)-center).Magnitude
-						if d<dist then dist=d; closest=part end
+		local myChar=p.Character
+		local myRoot=myChar and myChar:FindFirstChild("HumanoidRootPart")
+		if saSettings.Mode=="near" then
+			local closest,bestDist=nil,math.huge
+			for _,pl in ipairs(game.Players:GetPlayers())do
+				local ch=pl.Character
+				if pl~=p and ch and myRoot then
+					local part=ch:FindFirstChild(saSettings.TargetPart)
+					local hum=ch:FindFirstChildOfClass("Humanoid")
+					local root=ch:FindFirstChild("HumanoidRootPart")
+					if part and hum and hum.Health>0 and root then
+						local d=(myRoot.Position-root.Position).Magnitude
+						if d<bestDist then bestDist=d; closest=part end
 					end
 				end
 			end
+			return closest
+		else
+			local c=workspace.CurrentCamera
+			if not c then return end
+			local center=c.ViewportSize/2
+			local closest,dist=nil,saSettings.FOV
+			for _,pl in ipairs(game.Players:GetPlayers())do
+				local ch=pl.Character
+				if pl~=p and ch then
+					local part=ch:FindFirstChild(saSettings.TargetPart)
+					local hum=ch:FindFirstChildOfClass("Humanoid")
+					if part and hum and hum.Health>0 then
+						local pos,on=c:WorldToScreenPoint(part.Position)
+						if on then
+							local d=(Vector2.new(pos.X,pos.Y)-center).Magnitude
+							if d<dist then dist=d; closest=part end
+						end
+					end
+				end
+			end
+			return closest
 		end
-		return closest
 	end
 	saOld=hookmetamethod(game,"__index",newcclosure(function(self,key)
 		if not checkcaller() and self==mouse and saSettings.Enabled
@@ -238,7 +258,7 @@ end
 local newCmds={
 	{aliases={"walkfling","wf"},              fn=function() startWf() end},
 	{aliases={"unwalkfling","unwf"},          fn=function() stopWf() end},
-	{aliases={"silentaim"},                args="[fov]", fn=function(v) startSa(saSettings.TargetPart, tonumber(v) or 300) end},
+	{aliases={"silentaim"},                args="[fov/near]", fn=function(v) startSa(saSettings.TargetPart, v) end},
 	{aliases={"unsilentaim"},              fn=function() stopSa() end},
 	{aliases={"tpwalkspeed","tpwalk"},        args="[speed]", fn=function(v) startTpw(tonumber(v)) end},
 	{aliases={"untpwalkspeed","untpwalk"},    fn=function() stopTpw() end},
@@ -267,10 +287,10 @@ table.insert(getgenv().DeltaCmds.Pickers,{
 	title     = "SILENT AIM",
 	subtitle  = "Select target part",
 	buttons   = {
-		{label="HEAD",    sub="Aim at head",           accent=Color3.fromRGB(0,170,255),  value="Head"},
-		{label="HRP",     sub="Aim at HumanoidRootPart", accent=Color3.fromRGB(160,80,255), value="HumanoidRootPart"},
+		{label="HEAD", sub="Aim at head",             accent=Color3.fromRGB(0,170,255),  value="Head"},
+		{label="HRP",  sub="Aim at HumanoidRootPart", accent=Color3.fromRGB(160,80,255), value="HumanoidRootPart"},
 	},
-	onPick = function(part) startSa(part, saSettings.FOV) end,
+	onPick = function(part) startSa(part, saSettings.Mode=="near" and "near" or tostring(saSettings.FOV)) end,
 	stopFn = stopSa,
 })
 local adminActive=false
