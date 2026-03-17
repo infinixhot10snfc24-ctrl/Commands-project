@@ -405,21 +405,13 @@ end
 
 getgenv().DeltaCmds.showHookWarn = showHookWarn
 
-local HOOK_CMDS = {
-	lockwalkspeed=true, lockws=true,
-	lockjumppower=true, lockjp=true, ljp=true,
-	antikick=true,
-}
 local function _hookWarnCmds()
 	for _, entry in ipairs(getgenv().DeltaCmds.Cmds) do
-		for _, alias in ipairs(entry.aliases) do
-			if HOOK_CMDS[alias] and entry.fn then
-				local orig = entry.fn
-				entry.fn = function(...)
-					local args = {...}
-					showHookWarn(function() orig(table.unpack(args)) end)
-				end
-				break
+		if entry.hook and entry.fn then
+			local orig = entry.fn
+			entry.fn = function(...)
+				local args = {...}
+				showHookWarn(function() orig(table.unpack(args)) end)
 			end
 		end
 	end
@@ -436,10 +428,8 @@ end
 for _, pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do
 	local cmdEntry = aliasMap[pickerDef.cmdAlias]
 	if cmdEntry then
-		local isGodmode   = pickerDef.cmdAlias == "godmode"
-		local isSilentaim = pickerDef.cmdAlias == "silentaim"
-		if isSilentaim then
-			-- silentaim selalu pakai hook, warn muncul sebelum picker
+		if pickerDef.hookBeforePicker then
+			-- warn dulu sebelum picker dibuka (command selalu pakai hook)
 			cmdEntry.fn = function()
 				showHookWarn(function()
 					task.delay(0.32, function()
@@ -449,13 +439,13 @@ for _, pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do
 					end)
 				end)
 			end
-		elseif isGodmode then
-			-- godmode: warn hanya muncul kalau pilih "hook"
+		elseif pickerDef.hookOnValue then
+			-- warn hanya kalau value yang dipilih == hookOnValue
 			cmdEntry.fn = function()
 				task.delay(0.32, function()
 					showPicker(pickerDef, function(value)
 						if value == nil then return end
-						if value == "hook" then
+						if value == pickerDef.hookOnValue then
 							showHookWarn(function() pickerDef.onPick(value) end)
 						else
 							pickerDef.onPick(value)
