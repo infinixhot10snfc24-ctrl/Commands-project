@@ -343,6 +343,12 @@ do
 			end
 		end
 
+		for i = 1, #scripts do
+			while not states[i] do
+				task.wait()
+			end
+		end
+
 		for i,s in ipairs(scripts) do
 			local r=results[i]
 			if not r or not r.func then
