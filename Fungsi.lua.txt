@@ -1,5 +1,12 @@
 getgenv().DeltaCmds = {}
-local p = game.Players.LocalPlayer
+getgenv().DeltaCmds.Players = game:GetService("Players")
+getgenv().DeltaCmds.Player  = game:GetService("Players").LocalPlayer
+getgenv().DeltaCmds._active = {}
+local function isActive(id) return getgenv().DeltaCmds._active[id] == true end
+local function setActive(id) getgenv().DeltaCmds._active[id] = true end
+local function clearActive(id) getgenv().DeltaCmds._active[id] = nil end
+local p       = getgenv().DeltaCmds.Player
+local Players = getgenv().DeltaCmds.Players
 local rs = game:GetService("RunService")
 local tps = game:GetService("TeleportService")
 local uis = game:GetService("UserInputService")
@@ -51,7 +58,7 @@ local function tryRemoveHook()
 end
 local function resolveTargets(name)
 	local others = {}
-	for _, v in ipairs(game.Players:GetPlayers()) do
+	for _, v in ipairs(Players:GetPlayers()) do
 		if v ~= p then others[#others+1] = v end
 	end
 	if name == "all" then return others end
@@ -65,7 +72,7 @@ local function resolveTargets(name)
 	return {}
 end
 local function stopFly()
-	isFlying = false
+	clearActive("fly"); isFlying = false
 	if flyConn then flyConn:Disconnect(); flyConn = nil end
 	if flyCharConn then flyCharConn:Disconnect(); flyCharConn = nil end
 	if bv then bv:Destroy(); bv = nil end
@@ -84,6 +91,7 @@ local function setupFlyChar(char)
 	bg = Instance.new("BodyGyro", root);     bg.MaxTorque = Vector3.new(1e6,1e6,1e6); bg.P = 1e4
 end
 local function startFly(spd)
+	if isActive("fly") then return end; setActive("fly")
 	stopFly(); isFlying = true
 	local flySpeed = spd
 	getgenv().DeltaCmds.flySpeed = flySpeed
@@ -105,11 +113,13 @@ local function applyNoclip(char)
 	noclipConn = char.DescendantAdded:Connect(function(v) if v:IsA("BasePart") then v.CanCollide = false end end)
 end
 local function startNoclip()
+	if isActive("noclip") then return end; setActive("noclip")
 	if noclipCharConn then noclipCharConn:Disconnect() end
 	if p.Character then applyNoclip(p.Character) end
 	noclipCharConn = p.CharacterAdded:Connect(applyNoclip)
 end
 local function stopNoclip()
+	clearActive("noclip")
 	if noclipConn then noclipConn:Disconnect(); noclipConn = nil end
 	if noclipCharConn then noclipCharConn:Disconnect(); noclipCharConn = nil end
 	local char = p.Character
@@ -117,6 +127,7 @@ local function stopNoclip()
 end
 local function getHum(char) return char and char:FindFirstChildOfClass("Humanoid") end
 local function startLws(spd)
+	if isActive("lws") then return end; setActive("lws")
 	ensureHook()
 	getgenv().SpeedSettings.Value, getgenv().SpeedSettings.Locked = spd, true
 	local function apply(char)
@@ -131,11 +142,13 @@ local function startLws(spd)
 	lockwsCharConn = p.CharacterAdded:Connect(apply)
 end
 local function stopLws()
+	clearActive("lws")
 	getgenv().SpeedSettings.Locked = false
 	if lockwsCharConn then lockwsCharConn:Disconnect(); lockwsCharConn = nil end
 	tryRemoveHook()
 end
 local function startLoopws(spd)
+	if isActive("loopws") then return end; setActive("loopws")
 	getgenv().SpeedSettings.Locked = false
 	if lockwsCharConn  then lockwsCharConn:Disconnect();  lockwsCharConn  = nil end
 	if loopwsConn      then loopwsConn:Disconnect();      loopwsConn      = nil end
@@ -150,11 +163,13 @@ local function startLoopws(spd)
 	end)
 end
 local function stopLoopws()
+	clearActive("loopws")
 	if loopwsConn     then loopwsConn:Disconnect();     loopwsConn     = nil end
 	if loopwsCharConn then loopwsCharConn:Disconnect(); loopwsCharConn = nil end
 end
 local function setWs(spd) local hum = getHum(p.Character); if hum then hum.WalkSpeed = spd end end
 local function startLjp(pw)
+	if isActive("ljp") then return end; setActive("ljp")
 	ensureHook()
 	getgenv().JumpSettings.Value, getgenv().JumpSettings.Locked, getgenv().JumpSettings.OriginalUseJumpPower = pw, true, false
 	local function apply(char)
@@ -166,6 +181,7 @@ local function startLjp(pw)
 	lockjpCharConn = p.CharacterAdded:Connect(apply)
 end
 local function stopLjp()
+	clearActive("ljp")
 	getgenv().JumpSettings.Locked = false
 	if lockjpCharConn then lockjpCharConn:Disconnect(); lockjpCharConn = nil end
 	tryRemoveHook()
@@ -190,24 +206,28 @@ local function applySpinToChar(char)
 	end
 end
 local function startSpin(speed)
+	if isActive("spin") then return end; setActive("spin")
 	spinSpeed = speed
 	if spinConn then spinConn:Disconnect() end
 	if p.Character then applySpinToChar(p.Character) end
 	spinConn = p.CharacterAdded:Connect(applySpinToChar)
 end
 local function stopSpin()
+	clearActive("spin")
 	if spinBody then spinBody:Destroy(); spinBody = nil end
 	if spinConn then spinConn:Disconnect(); spinConn = nil end
 end
 local function startInfJump()
+	if isActive("infjump") then return end; setActive("infjump")
 	if ijConn then ijConn:Disconnect() end
 	ijConn = uis.JumpRequest:Connect(function()
 		local hum = getHum(p.Character)
 		if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
 	end)
 end
-local function stopInfJump() if ijConn then ijConn:Disconnect(); ijConn = nil end end
+local function stopInfJump() clearActive("infjump"); if ijConn then ijConn:Disconnect(); ijConn = nil end end
 local function startFullbright()
+	if isActive("fullbright") then return end; setActive("fullbright")
 	if not fbActive then
 		origAmbient, origOutdoor, origBright, origShadows = lighting.Ambient, lighting.OutdoorAmbient, lighting.Brightness, lighting.GlobalShadows
 		fbActive = true
@@ -216,6 +236,7 @@ local function startFullbright()
 	lighting.Brightness = 2; lighting.GlobalShadows = false; lighting.FogEnd = 100000
 end
 local function stopFullbright()
+	clearActive("fullbright")
 	if not fbActive then return end
 	fbActive = false
 	lighting.Ambient, lighting.OutdoorAmbient, lighting.Brightness, lighting.GlobalShadows = origAmbient, origOutdoor, origBright, origShadows
@@ -228,6 +249,7 @@ local function detachEspPlayer(target)
 	espPlayerData[target] = nil
 end
 local function stopEsp()
+	clearActive("esp")
 	if espGlobalConn then espGlobalConn:Disconnect(); espGlobalConn = nil end
 	if espRemoveConn then espRemoveConn:Disconnect(); espRemoveConn = nil end
 	for target in pairs(espPlayerData) do detachEspPlayer(target) end
@@ -270,10 +292,11 @@ local function attachEsp(target)
 	data.conns[#data.conns+1] = target.CharacterAdded:Connect(createESP)
 end
 local function startEsp(name)
+	if isActive("esp") then stopEsp() else setActive("esp") end
 	stopEsp()
 	for _, v in ipairs(resolveTargets(name)) do attachEsp(v) end
-	if name == "all" then espGlobalConn = game.Players.PlayerAdded:Connect(attachEsp) end
-	espRemoveConn = game.Players.PlayerRemoving:Connect(detachEspPlayer)
+	if name == "all" then espGlobalConn = Players.PlayerAdded:Connect(attachEsp) end
+	espRemoveConn = Players.PlayerRemoving:Connect(detachEspPlayer)
 end
 local function startFling(name)
 	if not name then return end
@@ -308,11 +331,13 @@ local function copyPos()
 end
 local function respawn() local hum = getHum(p.Character); if hum then hum.Health = 0 end end
 local function stopClickTp()
+	clearActive("clicktp")
 	if clickTpTool then clickTpTool:Destroy(); clickTpTool = nil end
 	for _, c in ipairs(clickTpConns) do c:Disconnect() end
 	clickTpConns = {}
 end
 local function startClickTp()
+	if isActive("clicktp") then return end; setActive("clicktp")
 	stopClickTp()
 	local tool = Instance.new("Tool", p.Backpack)
 	tool.Name = "ClickTP"; tool.RequiresHandle = false; tool.ToolTip = "Click/Tap to teleport"
@@ -344,6 +369,7 @@ local function startClickTp()
 	clickTpConns[#clickTpConns+1] = tool.AncestryChanged:Connect(function() if not tool.Parent then stopClickTp() end end)
 end
 local function stopGodAll()
+	clearActive("god")
 	if godmodeConn   then godmodeConn:Disconnect();   godmodeConn   = nil end
 	if godHealthConn then godHealthConn:Disconnect(); godHealthConn = nil end
 	if getgenv().GodSettings then getgenv().GodSettings.hookActive = false end
@@ -351,6 +377,7 @@ local function stopGodAll()
 	if godHookNewIndex then hookmetamethod(game, "__newindex", godHookNewIndex); godHookNewIndex = nil end
 end
 local function activateGod(mode)
+	if isActive("god") then return end; setActive("god")
 	stopGodAll()
 	if mode == "nohook" then
 		local function applyGod(char)
@@ -447,7 +474,7 @@ DC.Cmds = {
 		hitboxNccFolder = Instance.new("Folder", workspace); hitboxNccFolder.Name = "DeltaHitboxNCC"
 		local size = tonumber(v) or 30
 		local transp = tonumber(v2) or 0.9
-		local ps = p.Parent
+		local ps = Players
 		local myHrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
 		local function applyNcc(hrp)
 			if not myHrp then myHrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart") end
