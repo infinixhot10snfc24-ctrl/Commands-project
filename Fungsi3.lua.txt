@@ -2,11 +2,11 @@ repeat task.wait() until getgenv().DeltaCmds and getgenv().DeltaCmds.Cmds
 local p=game.Players.LocalPlayer
 local rs=game:GetService("RunService")
 local cam=workspace.CurrentCamera
-local wfConn=nil
+local wfConn
 local function startWf()
 	if wfConn then return end
 	local function getRoot(char)
-		return char and(char:FindFirstChild("HumanoidRootPart")or char:FindFirstChild("Torso")or char:FindFirstChild("UpperTorso"))
+		return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
 	end
 	wfConn=rs.Heartbeat:Connect(function()
 		local root=getRoot(p.Character)
@@ -17,36 +17,24 @@ local function startWf()
 		root.Velocity=v
 	end)
 end
-local function stopWf()
-	if wfConn then wfConn:Disconnect();wfConn=nil end
-end
-local saOld=nil
-local saGui=nil
+local function stopWf() if wfConn then wfConn:Disconnect(); wfConn=nil end end
+local saOld, saGui
 local saSettings={Enabled=false, FOV=300, TargetPart="Head", Mode="fov"}
-
 local function saDrawCircle(fov)
 	if saGui then saGui:Destroy(); saGui=nil end
 	local G=p:WaitForChild("PlayerGui")
-	local sg=Instance.new("ScreenGui",G)
-	sg.Name="DeltaSAFov"; sg.IgnoreGuiInset=true; sg.ResetOnSpawn=false
-	saGui=sg
-	local c=Instance.new("Frame",sg)
-	c.AnchorPoint=Vector2.new(.5,.5)
-	c.Position=UDim2.new(.5,0,.5,0)
-	c.Size=UDim2.fromOffset(fov*2,fov*2)
-	c.BackgroundTransparency=1
+	local sg=Instance.new("ScreenGui",G); sg.Name="DeltaSAFov"; sg.IgnoreGuiInset=true; sg.ResetOnSpawn=false; saGui=sg
+	local c=Instance.new("Frame",sg); c.AnchorPoint=Vector2.new(.5,.5); c.Position=UDim2.new(.5,0,.5,0)
+	c.Size=UDim2.fromOffset(fov*2,fov*2); c.BackgroundTransparency=1
 	local u=Instance.new("UICorner",c); u.CornerRadius=UDim.new(1,0)
 	local s=Instance.new("UIStroke",c); s.Thickness=2; s.Color=Color3.fromRGB(255,255,255)
 end
-
 local function stopSa()
 	saSettings.Enabled=false
 	if saGui then saGui:Destroy(); saGui=nil end
 	if not saOld then return end
-	hookmetamethod(game,"__index",saOld)
-	saOld=nil
+	hookmetamethod(game,"__index",saOld); saOld=nil
 end
-
 local function startSa(targetPart, arg)
 	stopSa()
 	saSettings.Enabled=true
@@ -61,7 +49,7 @@ local function startSa(targetPart, arg)
 		local myRoot=myChar and myChar:FindFirstChild("HumanoidRootPart")
 		if saSettings.Mode=="near" then
 			local closest,bestDist=nil,math.huge
-			for _,pl in ipairs(game.Players:GetPlayers())do
+			for _,pl in ipairs(game.Players:GetPlayers()) do
 				local ch=pl.Character
 				if pl~=p and ch and myRoot then
 					local part=ch:FindFirstChild(saSettings.TargetPart)
@@ -79,7 +67,7 @@ local function startSa(targetPart, arg)
 			if not c then return end
 			local center=c.ViewportSize/2
 			local closest,dist=nil,saSettings.FOV
-			for _,pl in ipairs(game.Players:GetPlayers())do
+			for _,pl in ipairs(game.Players:GetPlayers()) do
 				local ch=pl.Character
 				if pl~=p and ch then
 					local part=ch:FindFirstChild(saSettings.TargetPart)
@@ -97,8 +85,7 @@ local function startSa(targetPart, arg)
 		end
 	end
 	saOld=hookmetamethod(game,"__index",newcclosure(function(self,key)
-		if not checkcaller() and self==mouse and saSettings.Enabled
-			and (key=="Hit" or key=="Target" or key=="UnitRay") then
+		if not checkcaller() and self==mouse and saSettings.Enabled and (key=="Hit" or key=="Target" or key=="UnitRay") then
 			local target=GetTarget()
 			local c=workspace.CurrentCamera
 			if target and target:IsDescendantOf(workspace) and c then
@@ -112,41 +99,32 @@ local function startSa(targetPart, arg)
 		return saOld(self,key)
 	end))
 end
-local tpwConn=nil
-local tpwCharConn=nil
+local tpwConn, tpwCharConn
 local function startTpw(spd)
 	if tpwConn then tpwConn:Disconnect() end
 	if tpwCharConn then tpwCharConn:Disconnect() end
 	local s=spd or 0.5
-	local _tpwHum=nil
+	local _tpwHum
 	tpwCharConn=p.CharacterAdded:Connect(function() _tpwHum=nil end)
 	tpwConn=rs.Stepped:Connect(function()
-		if not _tpwHum or not _tpwHum.Parent then
-			local c=p.Character
-			_tpwHum=c and c:FindFirstChildOfClass("Humanoid")
-		end
-		if _tpwHum and _tpwHum.MoveDirection.Magnitude>0 then
-			_tpwHum.Parent:TranslateBy(_tpwHum.MoveDirection*s)
-		end
+		if not _tpwHum or not _tpwHum.Parent then _tpwHum=p.Character and p.Character:FindFirstChildOfClass("Humanoid") end
+		if _tpwHum and _tpwHum.MoveDirection.Magnitude>0 then _tpwHum.Parent:TranslateBy(_tpwHum.MoveDirection*s) end
 	end)
 end
 local function stopTpw()
-	if tpwConn then tpwConn:Disconnect();tpwConn=nil end
-	if tpwCharConn then tpwCharConn:Disconnect();tpwCharConn=nil end
+	if tpwConn    then tpwConn:Disconnect();    tpwConn    = nil end
+	if tpwCharConn then tpwCharConn:Disconnect(); tpwCharConn = nil end
 end
-local vfConn=nil
-local vfCharConn=nil
+local vfConn, vfCharConn
 local function stopVf()
-	if vfConn then vfConn:Disconnect();vfConn=nil end
-	if vfCharConn then vfCharConn:Disconnect();vfCharConn=nil end
+	if vfConn    then vfConn:Disconnect();    vfConn    = nil end
+	if vfCharConn then vfCharConn:Disconnect(); vfCharConn = nil end
 	local char=p.Character
 	if char then
 		local root=char:FindFirstChild("HumanoidRootPart")
 		if root then
-			local bg=root:FindFirstChild("NA_Gyro")
-			local bv=root:FindFirstChild("NA_Velocity")
-			if bg then bg:Destroy() end
-			if bv then bv:Destroy() end
+			local bg=root:FindFirstChild("NA_Gyro"); local bv=root:FindFirstChild("NA_Velocity")
+			if bg then bg:Destroy() end; if bv then bv:Destroy() end
 		end
 	end
 end
@@ -156,20 +134,14 @@ getgenv().DeltaCmds.startVf=function(spd)
 	local function doFly(char)
 		local root=char:WaitForChild("HumanoidRootPart",5)
 		if not root then return end
-		local bg=Instance.new("BodyGyro",root)
-		bg.Name="NA_Gyro";bg.MaxTorque=Vector3.new(9e9,9e9,9e9);bg.P=9e4
-		local bv=Instance.new("BodyVelocity",root)
-		bv.Name="NA_Velocity";bv.MaxForce=Vector3.new(9e9,9e9,9e9);bv.Velocity=Vector3.zero
+		local bg=Instance.new("BodyGyro",root); bg.Name="NA_Gyro"; bg.MaxTorque=Vector3.new(9e9,9e9,9e9); bg.P=9e4
+		local bv=Instance.new("BodyVelocity",root); bv.Name="NA_Velocity"; bv.MaxForce=Vector3.new(9e9,9e9,9e9); bv.Velocity=Vector3.zero
 		vfConn=rs.Heartbeat:Connect(function()
-			if not char:IsDescendantOf(workspace)or not bg.Parent or not bv.Parent then
-				vfConn:Disconnect();vfConn=nil;bg:Destroy();bv:Destroy();return
+			if not char:IsDescendantOf(workspace) or not bg.Parent or not bv.Parent then
+				vfConn:Disconnect(); vfConn=nil; bg:Destroy(); bv:Destroy(); return
 			end
 			local mv=getgenv().DeltaCmds.getCtrls():GetMoveVector()
-			if mv.Magnitude>0 then
-				bv.Velocity=cam.CFrame:VectorToWorldSpace(Vector3.new(mv.X,0,mv.Z))*speed
-			else
-				bv.Velocity=Vector3.zero
-			end
+			bv.Velocity = mv.Magnitude>0 and cam.CFrame:VectorToWorldSpace(Vector3.new(mv.X,0,mv.Z))*speed or Vector3.zero
 			bg.CFrame=cam.CFrame
 		end)
 	end
@@ -178,139 +150,95 @@ getgenv().DeltaCmds.startVf=function(spd)
 end
 getgenv().DeltaCmds.stopVf=stopVf
 local function startReach(sz)
-	local size=tonumber(sz)or 25
+	local size=tonumber(sz) or 25
 	local char=p.Character
-	local tool=char and char:FindFirstChildOfClass("Tool")
-		or p.Backpack:FindFirstChildOfClass("Tool")
+	local tool=char and char:FindFirstChildOfClass("Tool") or p.Backpack:FindFirstChildOfClass("Tool")
 	if not tool then return end
-	local val=Instance.new("Vector3Value",tool)
-	val.Name="OGSize3";val.Value=tool.Handle.Size
-	local sb=Instance.new("SelectionBox")
-	sb.Adornee=tool.Handle;sb.Name="FunTIMES"
-	sb.Transparency=1;sb.Parent=tool.Handle
-	tool.Handle.Massless=true
-	tool.Handle.Size=Vector3.new(size,size,size)
+	local val=Instance.new("Vector3Value",tool); val.Name="OGSize3"; val.Value=tool.Handle.Size
+	local sb=Instance.new("SelectionBox"); sb.Adornee=tool.Handle; sb.Name="FunTIMES"; sb.Transparency=1; sb.Parent=tool.Handle
+	tool.Handle.Massless=true; tool.Handle.Size=Vector3.new(size,size,size)
 end
-local function startStats()
-	getgenv().DeltaCmds._showStats=true
-end
-local invisConn       = nil
-local invisCharConn   = nil
-local invisActive     = false
-local invisVisibleParts = {}
-
+local function startStats() getgenv().DeltaCmds._showStats=true end
+local invisConn, invisCharConn
+local invisActive, invisVisibleParts = false, {}
 local function setupInvisChar(char)
-	char = char or p.Character
+	char=char or p.Character
 	if not char then return end
-	invisVisibleParts = {}
-	for _, part in pairs(char:GetDescendants()) do
-		if part:IsA("BasePart") and part.Transparency == 0 then
-			invisVisibleParts[#invisVisibleParts + 1] = part
-		end
+	invisVisibleParts={}
+	for _,part in pairs(char:GetDescendants()) do
+		if part:IsA("BasePart") and part.Transparency==0 then invisVisibleParts[#invisVisibleParts+1]=part end
 	end
-	for _, part in pairs(invisVisibleParts) do
-		part.Transparency = 0.5
-	end
+	for _,part in pairs(invisVisibleParts) do part.Transparency=0.5 end
 end
-
 local function startInvis()
 	if invisActive then return end
-	invisActive = true
-	local char = p.Character or p.CharacterAdded:Wait()
-	local hum  = char:WaitForChild("Humanoid", 5)
-	local root = char:WaitForChild("HumanoidRootPart", 5)
-	if not hum or not root then invisActive = false; return end
+	invisActive=true
+	local char=p.Character or p.CharacterAdded:Wait()
+	local hum=char:WaitForChild("Humanoid",5)
+	local root=char:WaitForChild("HumanoidRootPart",5)
+	if not hum or not root then invisActive=false; return end
 	setupInvisChar(char)
 	if invisCharConn then invisCharConn:Disconnect() end
-	invisCharConn = p.CharacterAdded:Connect(function(newChar)
+	invisCharConn=p.CharacterAdded:Connect(function(newChar)
 		if not invisActive then return end
-		hum  = newChar:WaitForChild("Humanoid", 5)
-		root = newChar:WaitForChild("HumanoidRootPart", 5)
+		hum=newChar:WaitForChild("Humanoid",5); root=newChar:WaitForChild("HumanoidRootPart",5)
 		if hum and root then setupInvisChar(newChar) end
 	end)
 	if invisConn then invisConn:Disconnect() end
-	invisConn = rs.Heartbeat:Connect(function()
-		if not invisActive then return end
-		if not root or not root.Parent then return end
-		if not hum  or not hum.Parent  then return end
-		local origCFrame       = root.CFrame
-		local origCameraOffset = hum.CameraOffset
-		local hiddenCFrame     = origCFrame - origCFrame.Position + Vector3.new(origCFrame.X, origCFrame.Y - 200000, origCFrame.Z)
-		local camPos           = origCFrame.Position - hiddenCFrame.Position
-		root.CFrame      = hiddenCFrame
-		hum.CameraOffset = camPos
+	invisConn=rs.Heartbeat:Connect(function()
+		if not invisActive or not root or not root.Parent or not hum or not hum.Parent then return end
+		local origCF=root.CFrame; local origCO=hum.CameraOffset
+		local hiddenCF=origCF-origCF.Position+Vector3.new(origCF.X,origCF.Y-200000,origCF.Z)
+		root.CFrame=hiddenCF; hum.CameraOffset=origCF.Position-hiddenCF.Position
 		rs.RenderStepped:Wait()
-		root.CFrame      = origCFrame
-		hum.CameraOffset = origCameraOffset
+		root.CFrame=origCF; hum.CameraOffset=origCO
 	end)
 end
-
 local function stopInvis()
-	invisActive = false
-	if invisConn     then invisConn:Disconnect();     invisConn     = nil end
+	invisActive=false
+	if invisConn    then invisConn:Disconnect();    invisConn    = nil end
 	if invisCharConn then invisCharConn:Disconnect(); invisCharConn = nil end
-	for _, part in pairs(invisVisibleParts) do
-		if part and part.Parent then part.Transparency = 0 end
-	end
-	invisVisibleParts = {}
+	for _,part in pairs(invisVisibleParts) do if part and part.Parent then part.Transparency=0 end end
+	invisVisibleParts={}
 end
-
 local newCmds={
-	{aliases={"walkfling","wf"},              fn=function() startWf() end},
-	{aliases={"unwalkfling","unwf"},          fn=function() stopWf() end},
-	{aliases={"silentaim"},                args="[fov/near]", fn=function(v) startSa(saSettings.TargetPart, v) end},
-	{aliases={"unsilentaim"},              fn=function() stopSa() end},
-	{aliases={"tpwalkspeed","tpwalk"},        args="[speed]", fn=function(v) startTpw(tonumber(v)) end},
-	{aliases={"untpwalkspeed","untpwalk"},    fn=function() stopTpw() end},
-	{aliases={"vehiclefly","vfly"},           args="[speed]", fn=function(v) getgenv().DeltaCmds.startVf(tonumber(v)) end,
-	 hud="speed",hudDefault=50,hudStart="startVf",hudStop="stopVf",
-	 hudOn={"vehiclefly","vfly"},hudOff={"unvehiclefly","unvfly"}},
-	{aliases={"unvehiclefly","unvfly"},       fn=function() stopVf() end},
-	{aliases={"reach"},                       args="[size]", fn=function(v) startReach(v) end},
-	{aliases={"stats"},                       fn=function() startStats() end},
-	{aliases={"invisible","invis"},           fn=function() startInvis() end},
-	{aliases={"uninvisible","uninvis"},       fn=function() stopInvis()  end},
+	{aliases={"walkfling","wf"},              fn=startWf},
+	{aliases={"unwalkfling","unwf"},          fn=stopWf},
+	{aliases={"silentaim"},                  args="[fov/near]", fn=function(v) startSa(saSettings.TargetPart,v) end},
+	{aliases={"unsilentaim"},                 fn=stopSa},
+	{aliases={"tpwalkspeed","tpwalk"},        args="[speed]",    fn=function(v) startTpw(tonumber(v)) end},
+	{aliases={"untpwalkspeed","untpwalk"},    fn=stopTpw},
+	{aliases={"vehiclefly","vfly"},           args="[speed]",    fn=function(v) getgenv().DeltaCmds.startVf(tonumber(v)) end,
+	 hud="speed", hudDefault=50, hudStart="startVf", hudStop="stopVf", hudOn={"vehiclefly","vfly"}, hudOff={"unvehiclefly","unvfly"}},
+	{aliases={"unvehiclefly","unvfly"},       fn=stopVf},
+	{aliases={"reach"},                       args="[size]",     fn=function(v) startReach(v) end},
+	{aliases={"stats"},                       fn=startStats},
+	{aliases={"invisible","invis"},           fn=startInvis},
+	{aliases={"uninvisible","uninvis"},       fn=stopInvis},
 }
 local cmds=getgenv().DeltaCmds.Cmds
 local insertAt=#cmds
-for i,entry in ipairs(cmds)do
-	if entry.aliases[1]=="commands"then insertAt=i;break end
-end
-for i,entry in ipairs(newCmds)do
-	table.insert(cmds,insertAt+i-1,entry)
-end
-
-getgenv().DeltaCmds.Pickers = getgenv().DeltaCmds.Pickers or {}
-table.insert(getgenv().DeltaCmds.Pickers,{
-	cmdAlias  = "silentaim",
-	stopAlias = "unsilentaim",
-	title     = "SILENT AIM",
-	subtitle  = "Select target part",
-	buttons   = {
-		{label="HEAD", sub="Aim at head",             accent=Color3.fromRGB(0,170,255),  value="Head"},
-		{label="HRP",  sub="Aim at HumanoidRootPart", accent=Color3.fromRGB(160,80,255), value="HumanoidRootPart"},
-	},
-	onPick = function(part) startSa(part, saSettings.Mode=="near" and "near" or tostring(saSettings.FOV)) end,
-	stopFn = stopSa,
-})
-local adminActive=false
-local adminChatConn=nil
+for i,entry in ipairs(cmds) do if entry.aliases[1]=="commands" then insertAt=i; break end end
+for i,entry in ipairs(newCmds) do table.insert(cmds,insertAt+i-1,entry) end
+local adminActive, adminChatConn
 local function startAdmin()
 	if adminActive then return end
 	adminActive=true
 	adminChatConn=p.Chatted:Connect(function(msg)
-		if msg:sub(1,1)~="/"then return end
-		local cmd=msg:sub(2)
-		if getgenv().DeltaCmds.runCmd then
-			getgenv().DeltaCmds.runCmd(cmd)
-		end
+		if msg:sub(1,1)~="/" then return end
+		if getgenv().DeltaCmds.runCmd then getgenv().DeltaCmds.runCmd(msg:sub(2)) end
 	end)
 end
 local adminInsertAt=#cmds
-for i,e in ipairs(cmds)do
-	if e.aliases[1]=="commands"then adminInsertAt=i;break end
-end
-table.insert(cmds,adminInsertAt,{
-	aliases={"admin"},
-	fn=function()startAdmin()end,
+for i,e in ipairs(cmds) do if e.aliases[1]=="commands" then adminInsertAt=i; break end end
+table.insert(cmds,adminInsertAt,{aliases={"admin"}, fn=startAdmin})
+getgenv().DeltaCmds.Pickers=getgenv().DeltaCmds.Pickers or {}
+table.insert(getgenv().DeltaCmds.Pickers,{
+	cmdAlias="silentaim", stopAlias="unsilentaim", title="SILENT AIM", subtitle="Select target part",
+	buttons={
+		{label="HEAD", sub="Aim at head",             accent=Color3.fromRGB(0,170,255),  value="Head"},
+		{label="HRP",  sub="Aim at HumanoidRootPart", accent=Color3.fromRGB(160,80,255), value="HumanoidRootPart"},
+	},
+	onPick=function(part) startSa(part, saSettings.Mode=="near" and "near" or tostring(saSettings.FOV)) end,
+	stopFn=stopSa,
 })
