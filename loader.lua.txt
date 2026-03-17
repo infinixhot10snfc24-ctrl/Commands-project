@@ -1,65 +1,90 @@
 do
 	local env = getgenv()
-	local ts = game:GetService("TweenService")
-	local cg = game:GetService("CoreGui")
-	local players = game:GetService("Players")
 
-	local VERSION = "1.0.0"
+	if env._DeltaLoaded then
+		if env._DeltaReloading then return end
+		env._DeltaReloading = true
 
-	local function cleanupLoader()
-		local cmds = env.DeltaCmds
-		if cmds and cmds.Cmds then
-			for _,cmd in ipairs(cmds.Cmds) do
-				if type(cmd.aliases)=="table" and cmd.aliases[1] then
-					local a = cmd.aliases[1]
-					if (string.sub(a,1,2)=="un" or a=="clip") and type(cmd.fn)=="function" then
-						pcall(cmd.fn)
-					end
-				end
+		if env.DeltaCleanup then
+			for _,fn in ipairs(env.DeltaCleanup) do
+				pcall(fn)
 			end
-			env.DeltaCmds = nil
 		end
 
-		local objs = env.DeltaObjects
-		if objs then
-			for _,obj in ipairs(objs) do
+		if env.DeltaObjects then
+			for _,obj in ipairs(env.DeltaObjects) do
 				if typeof(obj)=="Instance" then
 					pcall(function() obj:Destroy() end)
+				elseif typeof(obj)=="RBXScriptConnection" then
+					pcall(function() obj:Disconnect() end)
 				end
 			end
 		end
 
 		env.DeltaObjects = {}
-		env._DeltaLoaded = false
-	end
+		env.DeltaCleanup = {}
+		env.DeltaCache = {}
 
-	if env._DeltaLoaded then
-		cleanupLoader()
 		task.wait(0.1)
 	end
 
+	env._DeltaReloading = false
 	env._DeltaLoaded = true
+
+	local ts = game:GetService("TweenService")
+	local cg = game:GetService("CoreGui")
+	local players = game:GetService("Players")
+	local HttpService = game:GetService("HttpService")
+
+	local VERSION = "1.0.0"
+	local repo = "https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/"
+
+	local hasFileAPI = (writefile and readfile and isfile and delfile) and true or false
+
 	env.DeltaObjects = env.DeltaObjects or {}
-	env.DeltaCache = env.DeltaCache or {}
+	env.DeltaCleanup = env.DeltaCleanup or {}
+	env.DeltaCache = {}
+
+	local onlineVersions = {}
+	local localVersions = {}
+	local versionsOK = false
 
 	local ui = {}
 
 	local scripts = {
-		{name="Fungsi.lua",url="https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/Fungsi.lua.txt",waitEnv=false},
-		{name="Fungsi2.lua",url="https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/Fungsi2.lua.txt",waitEnv=false},
-		{name="Fungsi3.lua",url="https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/Fungsi3.lua.txt",waitEnv=true},
-		{name="Gui.lua",url="https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/Gui.lua.txt",waitEnv=false},
-		{name="Gui2.lua",url="https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/Gui2.lua.txt",waitEnv=false}
+		{name="Fungsi.lua",url=repo.."Fungsi.lua.txt",waitEnv=false},
+		{name="Fungsi2.lua",url=repo.."Fungsi2.lua.txt",waitEnv=false},
+		{name="Fungsi3.lua",url=repo.."Fungsi3.lua.txt",waitEnv=true},
+		{name="Gui.lua",url=repo.."Gui.lua.txt",waitEnv=false},
+		{name="Gui2.lua",url=repo.."Gui2.lua.txt",waitEnv=false}
 	}
 
 	local function fail(reason,moduleName,errDetail)
+		print("[Loader] Failure detected")
+		print("Reason:",reason)
+		print("Module:",moduleName)
+		print("Detail:",tostring(errDetail))
+
 		if ui.status then
-			ui.status.Text = reason..": "..moduleName
-			ui.status.TextColor3 = Color3.fromRGB(255,0,0)
+			ui.status.Text = "Error in "..tostring(moduleName)
+			ui.status.TextColor3 = Color3.fromRGB(255,80,80)
 		end
-		task.wait(2)
-		cleanupLoader()
-		error(reason.." in "..moduleName.." | "..tostring(errDetail))
+
+		if ui.barFill then
+			ui.barFill.BackgroundColor3 = Color3.fromRGB(255,0,0)
+		end
+
+		task.wait(0.2)
+
+		if ui.status then
+			ui.status.Text = reason.."\n"..tostring(moduleName)
+		end
+
+		task.wait(5)
+
+		env.DeltaObjects = {}
+		env.DeltaCleanup = {}
+		env.DeltaCache = {}
 	end
 
 	local function createLoaderUI()
@@ -147,117 +172,222 @@ do
 	end
 
 	local function updateProgress(pct,txt)
+		if ui.status then ui.status.Text = txt end
+		if ui.barFill then
+			ts:Create(ui.barFill,TweenInfo.new(0.3),{Size=UDim2.new(pct,0,1,0)}):Play()
+		end
+	end
+
+	local function updateStatus(txt,color)
 		if ui.status then
 			ui.status.Text = txt
-		end
-		if ui.barFill then
-			ts:Create(ui.barFill,TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=UDim2.new(pct,0,1,0)}):Play()
-		end
-	end
-
-	local function downloadScript(url,name)
-		local cache = env.DeltaCache
-		if cache[url] then
-			return cache[url]
-		end
-		local success,result = pcall(function()
-			return game:HttpGet(url)
-		end)
-		if success and result then
-			cache[url] = result
-			return result
-		else
-			return nil,result
-		end
-	end
-
-	local function runScript(code,name)
-		local func,compErr = loadstring(code)
-		if not func then
-			fail("Syntax Error",name,compErr)
-		end
-		local execSuccess,execErr = pcall(func)
-		if not execSuccess then
-			fail("Run Error",name,execErr)
-		end
-	end
-
-	local function finishLoader()
-		if ui.status then
-			ui.status.Text = "Done!"
-			ui.status.TextColor3 = Color3.fromRGB(0,255,120)
-		end
-		task.wait(0.4)
-		if ui.frame then
-			ts:Create(ui.frame,TweenInfo.new(0.5,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)}):Play()
-		end
-		if ui.bg then
-			ts:Create(ui.bg,TweenInfo.new(0.5),{BackgroundTransparency=1}):Play()
-		end
-		task.wait(0.5)
-		if ui.sg then
-			ui.sg:Destroy()
-		end
-		env.DeltaObjects = {}
-	end
-
-	createLoaderUI()
-
-	local results = table.create(#scripts)
-	local states = table.create(#scripts)
-	local finished = 0
-	local total = #scripts
-	local timeout = 15
-	local start = os.clock()
-
-	for i,scriptData in ipairs(scripts) do
-		states[i] = false
-		task.spawn(function()
-			local code,err = downloadScript(scriptData.url,scriptData.name)
-			results[i] = {code=code,err=err,name=scriptData.name}
-			states[i] = true
-			finished += 1
-		end)
-	end
-
-	while finished < total and os.clock()-start < timeout do
-		updateProgress(finished/total,"Downloading scripts...")
-		task.wait(0.05)
-	end
-
-	if finished < total then
-		for i,done in ipairs(states) do
-			if not done then
-				fail("Conn Error",scripts[i].name,"Timeout")
+			if color then
+				ui.status.TextColor3 = color
 			end
 		end
 	end
 
-	for i,scriptData in ipairs(scripts) do
-		local r = results[i]
-		if not r or not r.code then
-			fail("Conn Error",scriptData.name,r and r.err or "Unknown error")
-		end
-		scriptData.code = r.code
+	local function validate(data)
+		if type(data) ~= "string" then return nil end
+		if #data < 80 then return nil end
+		local lower = string.lower(data)
+		if string.find(lower,"<html") or string.find(lower,"<!doctype") then return nil end
+		if not string.find(data,"function") then return nil end
+		local func = loadstring(data)
+		return func
 	end
 
-	for i,scriptData in ipairs(scripts) do
-		updateProgress((i-1)/total,"Executing "..scriptData.name.."...")
-		runScript(scriptData.code,scriptData.name)
-		scriptData.code = nil
+	local function downloadScript(url,name)
+		local cache = env.DeltaCache
 
-		if scriptData.waitEnv then
-			local waitTime = 0
-			repeat
-				task.wait(0.1)
-				waitTime += 0.1
-				if waitTime >= 10 then
-					fail("Timeout","DeltaCmds Env","Environment loading failed")
+		if cache[url] then
+			local f = validate(cache[url])
+			if f then
+				print("[Loader] Cache hit -> "..name)
+				return cache[url],f
+			end
+			cache[url] = nil
+		end
+
+		for attempt = 1,3 do
+			print("[Loader] Attempt "..attempt.." -> "..name)
+
+			local result
+			local done=false
+
+			task.spawn(function()
+				local ok,res = pcall(function()
+					return game:HttpGet(url)
+				end)
+				if ok then result=res end
+				done=true
+			end)
+
+			local t=os.clock()
+			while not done and os.clock()-t<5 do task.wait() end
+
+			local f=validate(result)
+			if done and f then
+				print("[Loader] Success -> "..name)
+				env.DeltaCache[url]=result
+				updateStatus("Updated: "..name, Color3.fromRGB(0,200,120))
+				return result,f
+			end
+		end
+
+		return nil,nil
+	end
+
+	local function loadLocal(name)
+		if not hasFileAPI or not isfile(name) then return nil,nil end
+		local ok,data = pcall(readfile,name)
+		if not ok then return nil,nil end
+		local f=validate(data)
+		if not f then
+			pcall(delfile,name)
+			return nil,nil
+		end
+		return data,f
+	end
+
+	createLoaderUI()
+	updateProgress(0,"Initializing...")
+
+	task.spawn(function()
+		updateProgress(0.05,"Checking updates...")
+
+		pcall(function()
+			local raw = game:HttpGet(repo.."versions.json")
+			local decoded = HttpService:JSONDecode(raw)
+			if type(decoded) == "table" then
+				onlineVersions = decoded
+				versionsOK = true
+			end
+		end)
+
+		if hasFileAPI and isfile("versions.json") then
+			pcall(function()
+				local decoded = HttpService:JSONDecode(readfile("versions.json"))
+				if type(decoded) == "table" then
+					localVersions = decoded
 				end
-			until env.DeltaCmds
+			end)
 		end
-	end
 
-	updateProgress(1,"Finalizing...")
-	finishLoader()
+		local results={}
+		local states={}
+		local finished=0
+		local total=#scripts
+		local timeout=10
+		local start=os.clock()
+
+		updateProgress(0.1,"Loading modules...")
+
+		for i,s in ipairs(scripts) do
+			states[i]=false
+			task.spawn(function()
+				local code,func
+
+				pcall(function()
+					if hasFileAPI and versionsOK then
+						local onlineHash = onlineVersions[s.name]
+						local localHash = localVersions[s.name]
+
+						if onlineHash and localHash == onlineHash then
+							code,func = loadLocal(s.name)
+						else
+							updateStatus("Updating: "..s.name, Color3.fromRGB(255,200,0))
+							pcall(function()
+								if isfile(s.name) then
+									delfile(s.name)
+								end
+							end)
+						end
+					end
+
+					if not code then
+						code,func=downloadScript(s.url,s.name)
+						if code and hasFileAPI then
+							pcall(function()
+								writefile(s.name,code)
+								local verify=readfile(s.name)
+								if not validate(verify) then delfile(s.name) end
+							end)
+
+							if versionsOK and onlineVersions[s.name] then
+								localVersions[s.name] = onlineVersions[s.name]
+								pcall(function()
+									writefile("versions.json", HttpService:JSONEncode(localVersions))
+								end)
+							end
+						end
+					end
+				end)
+
+				results[i]={code=code,func=func,name=s.name}
+				states[i]=true
+				finished+=1
+			end)
+		end
+
+		while finished<total and os.clock()-start<timeout do
+			updateProgress(0.1 + (finished/total)*0.5,"Loading modules...")
+			task.wait(0.05)
+		end
+
+		if finished<total then
+			for i,v in ipairs(states) do
+				if not v then
+					return fail("Timeout",scripts[i].name,"Thread stuck")
+				end
+			end
+		end
+
+		for i,s in ipairs(scripts) do
+			local r=results[i]
+			if not r or not r.func then
+				return fail("Invalid Script",s.name,"Validation failed")
+			end
+
+			local success=false
+			local lastErr
+
+			for attempt=1,3 do
+				updateProgress(0.6 + (i/total)*0.3,"Executing "..s.name.." (try "..attempt..")")
+
+				local ok,err=pcall(r.func)
+				if ok then
+					success=true
+					break
+				else
+					lastErr=err
+					local newCode,newFunc=downloadScript(s.url,s.name)
+					if newCode and newFunc then
+						r.func=newFunc
+						if hasFileAPI then
+							pcall(function() writefile(s.name,newCode) end)
+						end
+					end
+				end
+			end
+
+			if not success then
+				return fail("Execution Failed",s.name,lastErr)
+			end
+
+			if s.waitEnv then
+				local t=0
+				repeat task.wait(0.1) t+=0.1 until env.DeltaCmds or t>=10
+				if t>=10 then
+					return fail("Timeout","DeltaCmds Env","Not loaded")
+				end
+			end
+		end
+
+		updateProgress(1,"Finalizing...")
+		task.wait(0.5)
+
+		if ui.sg then ui.sg:Destroy() end
+		env.DeltaObjects={}
+	end)
 end
