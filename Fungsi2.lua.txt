@@ -1,5 +1,9 @@
 repeat task.wait() until getgenv().DeltaCmds and getgenv().DeltaCmds.Cmds
-local p = game.Players.LocalPlayer
+local p       = getgenv().DeltaCmds.Player
+local Players = getgenv().DeltaCmds.Players
+local function isActive(id) return getgenv().DeltaCmds._active and getgenv().DeltaCmds._active[id] end
+local function setActive(id) if getgenv().DeltaCmds._active then getgenv().DeltaCmds._active[id]=true end end
+local function clearActive(id) if getgenv().DeltaCmds._active then getgenv().DeltaCmds._active[id]=nil end end
 local rs = game:GetService("RunService")
 local lighting = game:GetService("Lighting")
 local cam = workspace.CurrentCamera
@@ -9,10 +13,12 @@ local antiflingConn, nfConn, frzConn
 local aflConns, aflOrig = {}, {}
 local nfActive, origFog
 local neConns, avisConns = {}, {}
+local neHookOrig = nil
 local alGui, alHB, alPac, alPrc
 local akActive, akOrig
 
 local function stopVw()
+	clearActive("vw")
 	if vwConn     then vwConn:Disconnect();     vwConn     = nil end
 	if vwRemoveConn then vwRemoveConn:Disconnect(); vwRemoveConn = nil end
 	if vwCharConn then vwCharConn:Disconnect(); vwCharConn = nil end
@@ -25,6 +31,7 @@ local function stopVw()
 	if root then root.Anchored = false end
 end
 local function startVw(name)
+	if isActive("vw") then return end; setActive("vw")
 	stopVw()
 	local target = getgenv().DeltaCmds.resolveTargets(name)[1]
 	if not target then return end
@@ -44,9 +51,10 @@ local function startVw(name)
 		local tr = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
 		if tr then vwPart.CFrame = tr.CFrame end
 	end)
-	vwRemoveConn = game.Players.PlayerRemoving:Connect(function(pl) if pl == target then stopVw() end end)
+	vwRemoveConn = Players.PlayerRemoving:Connect(function(pl) if pl == target then stopVw() end end)
 end
 local function stopFc()
+	clearActive("fc")
 	if fcConn    then fcConn:Disconnect();    fcConn    = nil end
 	if fcCharConn then fcCharConn:Disconnect(); fcCharConn = nil end
 	if fcPart    then fcPart:Destroy();       fcPart    = nil end
@@ -58,6 +66,7 @@ local function stopFc()
 	if root then root.Anchored = false end
 end
 local function startFc(spd)
+	if isActive("fc") then return end; setActive("fc")
 	stopFc()
 	local speed = spd or 50
 	local part = Instance.new("Part")
@@ -78,6 +87,7 @@ local function startFc(spd)
 	end)
 end
 local function startNf()
+	if isActive("nf") then return end; setActive("nf")
 	if not nfActive then origFog, nfActive = lighting.FogEnd, true end
 	lighting.FogEnd = 1e9
 	if nfConn then nfConn:Disconnect() end
@@ -86,12 +96,14 @@ local function startNf()
 	end)
 end
 local function stopNf()
+	clearActive("nf")
 	if not nfActive then return end
 	nfActive = false
 	if nfConn then nfConn:Disconnect(); nfConn = nil end
 	lighting.FogEnd = origFog
 end
 local function stopAfl()
+	clearActive("afl")
 	for _, conn in ipairs(aflConns) do conn:Disconnect() end
 	aflConns = {}
 	if antiflingConn then antiflingConn:Disconnect(); antiflingConn = nil end
@@ -99,6 +111,7 @@ local function stopAfl()
 	aflOrig = {}
 end
 local function startAfl()
+	if isActive("afl") then return end; setActive("afl")
 	stopAfl()
 	local function applyPart(part)
 		if not aflOrig[part] then
@@ -116,15 +129,17 @@ local function startAfl()
 		if pl.Character then applyChar(pl.Character) end
 		aflConns[#aflConns+1] = pl.CharacterAdded:Connect(applyChar)
 	end
-	for _, pl in ipairs(game.Players:GetPlayers()) do onPlayer(pl) end
-	antiflingConn = game.Players.PlayerAdded:Connect(onPlayer)
+	for _, pl in ipairs(Players:GetPlayers()) do onPlayer(pl) end
+	antiflingConn = Players.PlayerAdded:Connect(onPlayer)
 end
 local function stopFrz()
+	clearActive("frz")
 	if frzConn then frzConn:Disconnect(); frzConn = nil end
 	local char = p.Character
 	if char then for _, v in ipairs(char:GetDescendants()) do if v:IsA("BasePart") then v.Anchored = false end end end
 end
 local function startFrz()
+	if isActive("frz") then return end; setActive("frz")
 	stopFrz()
 	local function applyFreeze(char)
 		for _, v in ipairs(char:GetDescendants()) do if v:IsA("BasePart") then v.Anchored = true end end
@@ -194,6 +209,7 @@ local function sshop_fn()
 	tps:TeleportToPlaceInstance(placeId, best.id, p)
 end
 local function stopAl()
+	clearActive("al")
 	rs:UnbindFromRenderStep("DeltaAimlock")
 	if alHB  then alHB:Disconnect();  alHB  = nil end
 	if alGui then alGui:Destroy();    alGui = nil end
@@ -201,6 +217,7 @@ local function stopAl()
 	if alPrc then alPrc:Disconnect(); alPrc = nil end
 end
 local function startAl(fov)
+	if isActive("al") then return end; setActive("al")
 	stopAl()
 	local F=fov or 120; local F2=F*F; local A=0.3; local S=0.015; local M=1000; local PR=0.08
 	local L=p; local C=cam
@@ -211,9 +228,9 @@ local function startAl(fov)
 	local u=Instance.new("UICorner"); u.CornerRadius=UDim.new(1,0); u.Parent=c
 	local s=Instance.new("UIStroke"); s.Thickness=2; s.Color=Color3.fromRGB(255,255,255); s.Parent=c
 	local t, d, cp = nil, 0, {}
-	for _,pl in ipairs(game.Players:GetPlayers()) do if pl~=L then cp[#cp+1]=pl end end
-	alPac=game.Players.PlayerAdded:Connect(function(pl) if pl~=L then cp[#cp+1]=pl end end)
-	alPrc=game.Players.PlayerRemoving:Connect(function(pl)
+	for _,pl in ipairs(Players:GetPlayers()) do if pl~=L then cp[#cp+1]=pl end end
+	alPac=Players.PlayerAdded:Connect(function(pl) if pl~=L then cp[#cp+1]=pl end end)
+	alPrc=Players.PlayerRemoving:Connect(function(pl)
 		for i=#cp,1,-1 do if cp[i]==pl then table.remove(cp,i); break end end
 	end)
 	local rp=RaycastParams.new(); rp.FilterType=Enum.RaycastFilterType.Exclude
@@ -265,45 +282,80 @@ local function startAl(fov)
 	end)
 end
 local function stopNoEffect()
+	clearActive("ne")
 	for _, c in ipairs(neConns) do c:Disconnect() end; neConns = {}
-end
-local function startNoEffect()
-	stopNoEffect()
-	local w,l=workspace,game:GetService("Lighting")
-	l.GlobalShadows=false
-	local d={ParticleEmitter=true,Fire=true,Smoke=true,Sparkles=true,Trail=true,Beam=true,BlurEffect=true,BloomEffect=true,ColorCorrectionEffect=true,SunRaysEffect=true,DepthOfFieldEffect=true,PointLight=true,SpotLight=true,SurfaceLight=true,Clouds=true,Explosion=true}
-	local function f(o)
-		local c=o.ClassName
-		if d[c] then
-			local function k() pcall(function() o.Enabled=false
-				if c=="ParticleEmitter" then o.Transparency=NumberSequence.new(1); o:Clear()
-				elseif c=="Trail" or c=="Beam" then o.Transparency=NumberSequence.new(1); o.Width0=0; o.Width1=0
-				elseif c=="Fire" or c=="Smoke" or c=="Sparkles" then o.Size=0
-				elseif o:IsA("Light") then o.Brightness=0; o.Range=0
-				elseif c=="Explosion" then o.BlastRadius=0; o.BlastPressure=0
-				elseif c:find("Effect") then pcall(function() o.Size=0 end); pcall(function() o.Intensity=0 end)
-				elseif c=="Clouds" then o.Cover=0; o.Density=0
-				end
-			end) end
-			k()
-			pcall(function() o:GetPropertyChangedSignal("Enabled"):Connect(function() if o.Enabled then k() end end) end)
-		elseif c=="Atmosphere" then
-			pcall(function() o.Haze=0; o.Density=0; o.Glare=0 end)
-		elseif o:IsA("BasePart") then
-			pcall(function() o.CastShadow=false; o.Reflectance=0 end)
-		end
+	if neHookOrig then
+		local m=getrawmetatable(game); setreadonly(m,false)
+		m.__newindex=neHookOrig; setreadonly(m,true)
+		neHookOrig=nil
 	end
-	for _,o in ipairs(w:GetDescendants()) do f(o) end
-	for _,o in ipairs(l:GetDescendants()) do f(o) end
-	neConns[#neConns+1] = w.DescendantAdded:Connect(f)
-	neConns[#neConns+1] = l.DescendantAdded:Connect(f)
+end
+local function activateNoEffect(mode)
+	if isActive("ne") then return end; setActive("ne")
+	stopNoEffect()
+	task.spawn(function()
+		repeat task.wait() until game:IsLoaded()
+		local w,l=workspace,game:GetService("Lighting")
+		pcall(function()
+			l.GlobalShadows=false;l.FogEnd=1e9
+			l.EnvironmentDiffuseScale=0;l.EnvironmentSpecularScale=0
+			l.Technology=Enum.Technology.Compatibility
+		end)
+		local function k(o)
+			if o:IsA("Sky")then pcall(function()o.SkyboxBk=""o.SkyboxDn=""o.SkyboxFt=""o.SkyboxLf=""o.SkyboxRt=""o.SkyboxUp=""end)end
+			if o:IsA("Decal")then pcall(function()o.Transparency=1;o.Texture=""end)end
+			if o:IsA("Texture")then pcall(function()o.Transparency=1;o.Texture=""o.StudsPerTileU=0;o.StudsPerTileV=0 end)end
+			pcall(function()
+				if o:IsA("MeshPart")then o.TextureID=""
+				elseif o:IsA("SpecialMesh")then o.TextureId=""
+				elseif o:IsA("SurfaceAppearance")then o.ColorMap=""o.MetalnessMap=""o.RoughnessMap=""o.NormalMap=""
+				elseif o:IsA("Highlight")then o.Enabled=false end
+			end)
+			if o:IsA("ParticleEmitter")then pcall(function()o.Enabled=false;o.Rate=0;o.Speed=NumberRange.new(0);o.Lifetime=NumberRange.new(0);o.Size=NumberSequence.new(0);o.Transparency=NumberSequence.new(1);o:Clear()end)end
+			if o:IsA("Trail")or o:IsA("Beam")then pcall(function()o.Enabled=false;o.Width0=0;o.Width1=0;o.Transparency=NumberSequence.new(1);o.TextureLength=0 end)end
+			if o:IsA("Fire")or o:IsA("Smoke")or o:IsA("Sparkles")then pcall(function()o.Enabled=false;o.Size=0 end)end
+			if o:IsA("Explosion")then pcall(function()o.BlastRadius=0;o.BlastPressure=0 end)end
+			if o:IsA("PointLight")or o:IsA("SpotLight")or o:IsA("SurfaceLight")then pcall(function()o.Enabled=false;o.Brightness=0;o.Range=0 end)end
+			if o:IsA("BlurEffect")or o:IsA("BloomEffect")or o:IsA("ColorCorrectionEffect")or o:IsA("SunRaysEffect")or o:IsA("DepthOfFieldEffect")then pcall(function()o.Enabled=false;pcall(function()o.Size=0 end);pcall(function()o.Intensity=0 end)end)end
+			if o:IsA("Clouds")then pcall(function()o.Cover=0;o.Density=0 end)end
+			if o:IsA("Atmosphere")then pcall(function()o.Density=0;o.Haze=0;o.Glare=0 end)end
+			if o:IsA("BasePart")then pcall(function()o.CastShadow=false;o.Reflectance=0;o.Material=Enum.Material.Plastic end)end
+		end
+		for _,x in ipairs(w:GetDescendants())do k(x)end
+		for _,x in ipairs(l:GetDescendants())do k(x)end
+		neConns[#neConns+1]=w.DescendantAdded:Connect(function(o) pcall(k,o) end)
+		neConns[#neConns+1]=l.DescendantAdded:Connect(function(o) pcall(k,o) end)
+		if mode=="hook" then
+			local m=getrawmetatable(game);setreadonly(m,false)
+			neHookOrig=m.__newindex
+			m.__newindex=newcclosure(function(s,k,vv)
+				if typeof(s)=="Instance" then
+					if s:IsA("ParticleEmitter")then
+						if k=="Parent"then neHookOrig(s,"Enabled",false);neHookOrig(s,"Rate",0);return neHookOrig(s,k,vv)end
+						if k=="Enabled"then return neHookOrig(s,k,false)elseif k=="Rate"then return neHookOrig(s,k,0)
+						elseif k=="Speed"or k=="Lifetime"then return neHookOrig(s,k,NumberRange.new(0))
+						elseif k=="Size"then return neHookOrig(s,k,NumberSequence.new(0))end
+					elseif s:IsA("Trail")or s:IsA("Beam")then
+						if k=="Parent"then neHookOrig(s,"Enabled",false);return neHookOrig(s,k,vv)end
+						if k=="Enabled"then return neHookOrig(s,k,false)elseif k=="Width0"or k=="Width1"then return neHookOrig(s,k,0)end
+					elseif s:IsA("PointLight")or s:IsA("SpotLight")or s:IsA("SurfaceLight")then
+						if k=="Enabled"then return neHookOrig(s,k,false)elseif k=="Range"then return neHookOrig(s,k,0)end
+					end
+				end
+				return neHookOrig(s,k,vv)
+			end)
+			setreadonly(m,true)
+		end
+	end)
 end
 local function stopAvis()
+	clearActive("avis")
 	for _, c in ipairs(avisConns) do c:Disconnect() end; avisConns = {}
 end
 local function startAvis()
+	if isActive("avis") then return end; setActive("avis")
 	stopAvis()
-	local pl=game:GetService("Players")
+	local pl=Players
 	local b={Head=1,Torso=1,["Left Arm"]=1,["Right Arm"]=1,["Left Leg"]=1,["Right Leg"]=1,UpperTorso=1,LowerTorso=1,RightUpperArm=1,RightLowerArm=1,RightHand=1,LeftUpperArm=1,LeftLowerArm=1,LeftHand=1,RightUpperLeg=1,RightLowerLeg=1,RightFoot=1,LeftUpperLeg=1,LeftLowerLeg=1,LeftFoot=1}
 	local function v(o)
 		if o.Name=="HumanoidRootPart" then return end
@@ -328,6 +380,7 @@ local function startAvis()
 	end)
 end
 local function startAutoClick()
+	if isActive("ac") then return end; setActive("ac")
 	local VIM = game:GetService("VirtualInputManager")
 	local ac = getgenv().DeltaCmds.AC
 	if not ac then return end
@@ -350,7 +403,7 @@ local function startAutoClick()
 		end
 	end)
 end
-local function stopAutoClick() local ac=getgenv().DeltaCmds.AC; if ac then ac.active=false end end
+local function stopAutoClick() clearActive("ac"); local ac=getgenv().DeltaCmds.AC; if ac then ac.active=false end end
 getgenv().DeltaCmds.AC = {active=false, target=Vector2.new(0,0), mode="Mobile", delay=0.3}
 
 local newCmds = {
@@ -372,7 +425,7 @@ local newCmds = {
 	{aliases={"smallserverhop","sshop"},     fn=function() task.spawn(sshop_fn) end},
 	{aliases={"aimlock"},                   args="[fov]",     fn=function(v) startAl(tonumber(v)) end},
 	{aliases={"unaimlock"},                  fn=stopAl},
-	{aliases={"noeffect"},                   fn=startNoEffect},
+	{aliases={"noeffect"},                   fn=function() end},
 	{aliases={"unnoeffect"},                 fn=stopNoEffect},
 	{aliases={"antiinvisible","antiinvis","avis"}, fn=startAvis},
 	{aliases={"unantiinvisible","unantiinvis","unavis"}, fn=stopAvis},
@@ -386,3 +439,14 @@ local cmds = getgenv().DeltaCmds.Cmds
 local insertAt = #cmds
 for i, entry in ipairs(cmds) do if entry.aliases[1] == "commands" then insertAt = i; break end end
 for i, entry in ipairs(newCmds) do table.insert(cmds, insertAt+i-1, entry) end
+
+getgenv().DeltaCmds.Pickers = getgenv().DeltaCmds.Pickers or {}
+table.insert(getgenv().DeltaCmds.Pickers, {
+	cmdAlias="noeffect", stopAlias="unnoeffect", title="NOEFFECT", subtitle="Select method",
+	buttons={
+		{label="NO HOOK",   sub="Safe, client-side only",   accent=Color3.fromRGB(0,170,255),  value="nohook"},
+		{label="WITH HOOK", sub="hookmetamethod-based",     accent=Color3.fromRGB(160,80,255), value="hook"},
+	},
+	onPick=activateNoEffect, stopFn=stopNoEffect,
+	hookOnValue="hook",
+})
