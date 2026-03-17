@@ -366,7 +366,7 @@ local newCmds = {
 	{aliases={"freeze"},                     fn=startFrz,
 	 hud="toggle", hudStart="startFrz", hudStop="stopFrz", hudOn={"freeze"}, hudOff={"unfreeze"}},
 	{aliases={"unfreeze"},                   fn=stopFrz},
-	{aliases={"antikick"},                   fn=startAk},
+	{aliases={"antikick"},                   fn=startAk, hook=true},
 	{aliases={"unantikick"},                 fn=stopAk},
 	{aliases={"serverhop","shop"},           fn=function() task.spawn(serverhop) end},
 	{aliases={"smallserverhop","sshop"},     fn=function() task.spawn(sshop_fn) end},
