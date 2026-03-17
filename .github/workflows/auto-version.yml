@@ -1,0 +1,35 @@
+name: Auto Version Per File
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Generate versions.json
+        run: |
+          echo "{" > versions.json
+
+          for file in Fungsi.lua.txt Fungsi2.lua.txt Fungsi3.lua.txt Gui.lua.txt Gui2.lua.txt
+          do
+            hash=$(sha1sum $file | awk '{print $1}')
+            echo "\"$file\": \"$hash\"," >> versions.json
+          done
+
+          sed -i '$ s/,$//' versions.json
+          echo "}" >> versions.json
+
+      - name: Commit & Push
+        run: |
+          git config user.name "auto-bot"
+          git config user.email "bot@example.com"
+          git add versions.json
+          git commit -m "auto update versions" || exit 0
+          git push
