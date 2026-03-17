@@ -239,9 +239,6 @@ table.insert(getgenv().DeltaCmds.Pickers,{
 		{label="HEAD", sub="Aim at head",             accent=Color3.fromRGB(0,170,255),  value="Head"},
 		{label="HRP",  sub="Aim at HumanoidRootPart", accent=Color3.fromRGB(160,80,255), value="HumanoidRootPart"},
 	},
-	onPick=function(part)
-		local arg = saSettings.Mode=="near" and "near" or tostring(saSettings.FOV)
-		startSa(part, arg)
-	end,
+	onPick=function(part) startSa(part, "near") end,
 	stopFn=stopSa,
 })
