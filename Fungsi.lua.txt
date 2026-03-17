@@ -385,6 +385,7 @@ table.insert(getgenv().DeltaCmds.Pickers, {
 		{label="WITH HOOK", sub="hookmetamethod-based", accent=Color3.fromRGB(160,80,255), value="hook"},
 	},
 	onPick=activateGod, stopFn=stopGodAll,
+	hookOnValue="hook",
 })
 local DC = getgenv().DeltaCmds
 DC.resolveTargets = resolveTargets
@@ -398,12 +399,12 @@ DC.Cmds = {
 	{aliases={"unfly"},                                fn=stopFly},
 	{aliases={"noclip","nc"},                          fn=startNoclip},
 	{aliases={"unnoclip","unnc","clip"},               fn=stopNoclip},
-	{aliases={"lockwalkspeed","lockws"},               args="[speed]",       fn=function(v) startLws(tonumber(v) or 16) end},
+	{aliases={"lockwalkspeed","lockws"},               args="[speed]",       fn=function(v) startLws(tonumber(v) or 16) end, hook=true},
 	{aliases={"unlockwalkspeed","unlockws"},            fn=stopLws},
 	{aliases={"loopwalkspeed","loopws","lws"},          args="[speed]",       fn=function(v) startLoopws(tonumber(v) or 16) end},
 	{aliases={"unloopwalkspeed","unloopws","unlws"},    fn=stopLoopws},
 	{aliases={"walkspeed","speed","ws"},               args="[speed]",       fn=function(v) setWs(tonumber(v) or 16) end},
-	{aliases={"lockjumppower","lockjp","ljp"},          args="[power]",       fn=function(v) startLjp(tonumber(v) or 50) end},
+	{aliases={"lockjumppower","lockjp","ljp"},          args="[power]",       fn=function(v) startLjp(tonumber(v) or 50) end, hook=true},
 	{aliases={"unlockjumppower","unlockjp","unljp"},    fn=stopLjp},
 	{aliases={"jumppower","jp"},                       args="[power]",       fn=function(v) setJp(tonumber(v) or 50) end},
 	{aliases={"goto","tp"},                            args="[player/x] [y] [z]", fn=function(v,v2,v3) if v then gotoPlayer(v,v2,v3) end end},
