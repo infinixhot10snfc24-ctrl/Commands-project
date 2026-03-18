@@ -76,6 +76,7 @@ for i=1,MAX_SUGG do
 end
 
 -- === LAZY: cmdListFrame — dibuat saat "commands" pertama kali diketik ===
+local populateList
 local cmdListFrame,scroll,searchBox
 local function ensureCmdList()
 	if cmdListFrame then return end
@@ -308,7 +309,7 @@ local function updateSugg(txt)
 	for i=count+1,MAX_SUGG do suggItems[i].Text="";suggItems[i].Visible=false end
 	suggFrame.Size=_U(0,320,0,count*ITEM_H+(count-1)*ITEM_PAD);suggFrame.Visible=true
 end
-function populateList(filter)
+populateList = function(filter)
 	for _,child in ipairs(scroll:GetChildren()) do if child:IsA("TextLabel") then child:Destroy() end end
 	local i=1;local seen={}
 	for _,entry in ipairs(cmds) do
