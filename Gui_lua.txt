@@ -1,0 +1,374 @@
+local p = getgenv().DeltaCmds and getgenv().DeltaCmds.Player or game:GetService("Players").LocalPlayer
+local ts = game:GetService("TweenService")
+local uis = game:GetService("UserInputService")
+local _C=Color3.fromRGB;local _U=UDim2.new;local _N=Instance.new;local _GB=Enum.Font.GothamBold;local _GS=Enum.Font.GothamSemibold;local _G=Enum.Font.Gotham;local _TX=Enum.TextXAlignment;local _UI=Enum.UserInputType
+local MAX_SUGG=6;local ITEM_H=36;local ITEM_PAD=3
+local sg=_N("ScreenGui",game.CoreGui)
+sg.ResetOnSpawn=false;sg.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+local function makeDraggable(frame,handle)
+	handle=handle or frame
+	local dragInput,dragStart,startPos
+	handle.InputBegan:Connect(function(input)
+		if input.UserInputType==_UI.MouseButton1 or input.UserInputType==_UI.Touch then
+			dragInput=input;dragStart=input.Position;startPos=frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState==Enum.UserInputState.End then
+					if dragInput==input then dragInput=nil end
+				end
+			end)
+		end
+	end)
+	handle.InputChanged:Connect(function(input)
+		if dragInput and input==dragInput then
+			local delta=input.Position-dragStart
+			frame.Position=_U(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
+		end
+	end)
+end
+local btnContainer=_N("Frame",sg)
+btnContainer.Name="Container";btnContainer.Size=_U(0,50,0,50);btnContainer.Position=_U(0,20,0,20)
+btnContainer.BackgroundTransparency=1;btnContainer.BorderSizePixel=0;btnContainer.ZIndex=10
+local btn=_N("ImageButton",btnContainer)
+btn.Name="Button";btn.Size=_U(1,0,1,0);btn.BackgroundTransparency=1;btn.BorderSizePixel=0
+btn.Image="rbxassetid://115634411771134";btn.ImageTransparency=0
+btn.ScaleType=Enum.ScaleType.Fit;btn.AutoButtonColor=false;btn.Active=true;btn.ZIndex=10
+btn.MouseEnter:Connect(function() ts:Create(btn,TweenInfo.new(0.15),{ImageTransparency=0.2}):Play() end)
+btn.MouseLeave:Connect(function() ts:Create(btn,TweenInfo.new(0.15),{ImageTransparency=0}):Play() end)
+makeDraggable(btnContainer,btn)
+local cmdFrame=_N("Frame",sg)
+cmdFrame.Size=_U(0,0,0,48);cmdFrame.Position=_U(0.5,0,0.5,0);cmdFrame.AnchorPoint=Vector2.new(0.5,0.5)
+cmdFrame.BackgroundColor3=_C(13,13,18);cmdFrame.ClipsDescendants=true;cmdFrame.Visible=false
+_N("UICorner",cmdFrame).CornerRadius=UDim.new(0,24)
+local s2=_N("UIStroke",cmdFrame);s2.Color=_C(0,120,200);s2.Thickness=1.5
+local cmdGrad=_N("UIGradient",cmdFrame)
+cmdGrad.Color=ColorSequence.new{ColorSequenceKeypoint.new(0,_C(20,20,30)),ColorSequenceKeypoint.new(1,_C(10,10,18))}
+cmdGrad.Rotation=90
+local cmdIcon=_N("TextLabel",cmdFrame)
+cmdIcon.Size=_U(0,36,1,0);cmdIcon.Position=_U(0,8,0,0);cmdIcon.BackgroundTransparency=1
+cmdIcon.Text="⌘";cmdIcon.TextColor3=_C(0,170,255);cmdIcon.Font=_GB;cmdIcon.TextSize=18
+local box=_N("TextBox",cmdFrame)
+box.Size=_U(1,-50,1,0);box.Position=_U(0,40,0,0);box.BackgroundTransparency=1
+box.TextColor3=_C(220,220,220);box.PlaceholderText="ketik command...";box.PlaceholderColor3=_C(80,80,100)
+box.Font=_GS;box.TextSize=15;box.TextXAlignment=_TX.Left
+local suggFrame=_N("Frame",sg)
+suggFrame.Size=_U(0,320,0,0);suggFrame.Position=_U(0.5,0,0.5,-26);suggFrame.AnchorPoint=Vector2.new(0.5,1)
+suggFrame.BackgroundColor3=_C(15,15,20);suggFrame.ClipsDescendants=true;suggFrame.Visible=false
+_N("UICorner",suggFrame).CornerRadius=UDim.new(0,12)
+local sSugg=_N("UIStroke",suggFrame);sSugg.Color=_C(0,100,180);sSugg.Thickness=1
+_N("UIListLayout",suggFrame).Padding=UDim.new(0,ITEM_PAD)
+local clickingSugg=false
+local suggItems={}
+for i=1,MAX_SUGG do
+	local item=_N("TextButton",suggFrame)
+	item.Size=_U(1,0,0,ITEM_H);item.BackgroundTransparency=1;item.TextColor3=_C(0,170,255)
+	item.Font=_GS;item.TextSize=15;item.TextXAlignment=_TX.Left;item.AutoButtonColor=false
+	item.Text="";item.Visible=false;item.LayoutOrder=i
+	_N("UIPadding",item).PaddingLeft=UDim.new(0,14)
+	item.MouseEnter:Connect(function() item.BackgroundTransparency=0.75;item.BackgroundColor3=_C(0,80,180) end)
+	item.MouseLeave:Connect(function() item.BackgroundTransparency=1 end)
+	item.MouseButton1Down:Connect(function() clickingSugg=true end)
+	item.MouseButton1Click:Connect(function()
+		local first=string.match(item.Text,"^([^/]+)")
+		box.Text=first.." ";clickingSugg=false;box:CaptureFocus()
+	end)
+	suggItems[i]=item
+end
+local populateList
+local cmdListFrame,scroll,searchBox
+local function ensureCmdList()
+	if cmdListFrame then return end
+	cmdListFrame=_N("Frame",sg)
+	cmdListFrame.Size=_U(0,300,0,380);cmdListFrame.Position=_U(0.5,0,0.5,0)
+	cmdListFrame.AnchorPoint=Vector2.new(0.5,0.5);cmdListFrame.BackgroundColor3=_C(25,25,25)
+	cmdListFrame.Visible=false;cmdListFrame.Active=true
+	_N("UICorner",cmdListFrame).CornerRadius=UDim.new(0,8)
+	local sL=_N("UIStroke",cmdListFrame);sL.Color=_C(0,170,255);sL.Thickness=2
+	local titleBar=_N("Frame",cmdListFrame)
+	titleBar.Size=_U(1,0,0,40);titleBar.BackgroundColor3=_C(20,20,20)
+	_N("UICorner",titleBar).CornerRadius=UDim.new(0,8)
+	local tFix=_N("Frame",titleBar)
+	tFix.Size=_U(1,0,0.5,0);tFix.Position=_U(0,0,0.5,0);tFix.BackgroundColor3=_C(20,20,20);tFix.BorderSizePixel=0
+	makeDraggable(cmdListFrame,titleBar)
+	local titleText=_N("TextLabel",titleBar)
+	titleText.Size=_U(1,-40,1,0);titleText.Position=_U(0,15,0,0);titleText.BackgroundTransparency=1
+	titleText.Text="Command List";titleText.TextColor3=_C(0,170,255);titleText.Font=_GB
+	titleText.TextSize=16;titleText.TextXAlignment=_TX.Left
+	local closeBtn=_N("TextButton",titleBar)
+	closeBtn.Size=_U(0,30,0,30);closeBtn.Position=_U(1,-35,0,5);closeBtn.BackgroundTransparency=1
+	closeBtn.Text="❌";closeBtn.TextSize=14;closeBtn.Font=_G
+	searchBox=_N("TextBox",cmdListFrame)
+	searchBox.Size=_U(1,-20,0,28);searchBox.Position=_U(0,10,0,44);searchBox.BackgroundColor3=_C(35,35,35)
+	searchBox.BorderSizePixel=0;searchBox.PlaceholderText="🔍 cari command...";searchBox.PlaceholderColor3=_C(100,100,100)
+	searchBox.Text="";searchBox.TextColor3=_C(220,220,220);searchBox.Font=_GS;searchBox.TextSize=13;searchBox.ClearTextOnFocus=false
+	_N("UICorner",searchBox).CornerRadius=UDim.new(0,6)
+	_N("UIPadding",searchBox).PaddingLeft=UDim.new(0,8)
+	scroll=_N("ScrollingFrame",cmdListFrame)
+	scroll.Size=_U(1,-20,1,-82);scroll.Position=_U(0,10,0,78);scroll.BackgroundTransparency=1
+	scroll.ScrollBarThickness=4;scroll.CanvasSize=_U(0,0,0,0);scroll.AutomaticCanvasSize=Enum.AutomaticSize.Y
+	scroll.ScrollBarImageColor3=_C(0,170,255)
+	local listLayout=_N("UIListLayout",scroll);listLayout.Padding=UDim.new(0,5);listLayout.SortOrder=Enum.SortOrder.LayoutOrder
+	closeBtn.MouseButton1Click:Connect(function() cmdListFrame.Visible=false end)
+	searchBox:GetPropertyChangedSignal("Text"):Connect(function() populateList(string.lower(searchBox.Text)) end)
+end
+local COLOR_ON=_C(80,220,120);local COLOR_OFF=_C(220,70,70)
+local function makeHUD(label,defaultSpd,startFn,stopFn,yOff)
+	local active,speed,expanded=false,defaultSpd,false
+	local tw=TweenInfo.new(0.15,Enum.EasingStyle.Quad)
+	local frame,stroke,nameLabel,speedLabel,toggleBtn,inputRow,inputBox
+	local built=false
+	local applySpeed,setExpanded,setActive
+	local function build()
+		if built then return end;built=true
+		frame=_N("Frame",sg);frame.Size=_U(0,130,0,44);frame.Position=_U(1,-146,0,20+yOff)
+		frame.BackgroundColor3=_C(22,22,22);frame.BorderSizePixel=0;frame.Active=true
+		frame.Visible=false;frame.ClipsDescendants=true
+		_N("UICorner",frame).CornerRadius=UDim.new(0,12)
+		stroke=_N("UIStroke",frame);stroke.Color=COLOR_ON;stroke.Thickness=2
+		nameLabel=_N("TextLabel",frame);nameLabel.Size=_U(1,-64,0,44);nameLabel.Position=_U(0,10,0,0)
+		nameLabel.BackgroundTransparency=1;nameLabel.Text=label;nameLabel.TextColor3=COLOR_ON
+		nameLabel.Font=_GB;nameLabel.TextSize=16;nameLabel.TextXAlignment=_TX.Left;nameLabel.TextYAlignment=Enum.TextYAlignment.Center
+		speedLabel=_N("TextLabel",frame);speedLabel.Size=_U(0,36,0,44);speedLabel.Position=_U(1,-60,0,0)
+		speedLabel.BackgroundTransparency=1;speedLabel.Text=tostring(speed);speedLabel.TextColor3=_C(140,140,140)
+		speedLabel.Font=_GB;speedLabel.TextSize=11;speedLabel.TextXAlignment=_TX.Center;speedLabel.TextYAlignment=Enum.TextYAlignment.Center
+		toggleBtn=_N("TextButton",frame);toggleBtn.Size=_U(0,22,0,22);toggleBtn.Position=_U(1,-26,0,11)
+		toggleBtn.BackgroundColor3=_C(45,45,45);toggleBtn.BorderSizePixel=0;toggleBtn.Text="+"
+		toggleBtn.TextColor3=_C(200,200,200);toggleBtn.Font=_GB;toggleBtn.TextSize=13;toggleBtn.ZIndex=5
+		_N("UICorner",toggleBtn).CornerRadius=UDim.new(0,6)
+		inputRow=_N("Frame",frame);inputRow.Size=_U(1,-16,0,38);inputRow.Position=_U(0,8,0,50)
+		inputRow.BackgroundColor3=_C(32,32,32);inputRow.BorderSizePixel=0;inputRow.Visible=false
+		_N("UICorner",inputRow).CornerRadius=UDim.new(0,8);_N("UIStroke",inputRow).Color=_C(60,60,80)
+		inputBox=_N("TextBox",inputRow);inputBox.Size=_U(1,-16,1,-8);inputBox.Position=_U(0,8,0,4)
+		inputBox.BackgroundTransparency=1;inputBox.Text=tostring(speed);inputBox.TextColor3=_C(230,230,230)
+		inputBox.Font=_GB;inputBox.TextSize=15;inputBox.TextXAlignment=_TX.Center;inputBox.PlaceholderText="speed"
+		local clickArea=_N("TextButton",frame);clickArea.Size=_U(1,-36,0,44);clickArea.Position=_U(0,0,0,0)
+		clickArea.BackgroundTransparency=1;clickArea.Text="";clickArea.ZIndex=2
+		makeDraggable(frame,clickArea)
+		local _th=false
+		toggleBtn.MouseButton1Click:Connect(function() _th=true;setExpanded(not expanded) end)
+		clickArea.MouseButton1Click:Connect(function()
+			if _th then _th=false;return end
+			active=not active
+			local col=active and COLOR_ON or COLOR_OFF
+			ts:Create(stroke,tw,{Color=col}):Play();ts:Create(nameLabel,tw,{TextColor3=col}):Play()
+			if active then startFn(speed) else stopFn() end
+			if not active and expanded then setExpanded(false) end
+		end)
+		inputBox.FocusLost:Connect(function()
+			applySpeed(inputBox.Text)
+			if tonumber(inputBox.Text)==nil or tonumber(inputBox.Text)<1 then inputBox.Text=tostring(speed) end
+		end)
+	end
+	applySpeed=function(val)
+		local n=tonumber(val);if not n or n<1 then return end
+		speed=n;speedLabel.Text=tostring(speed);inputBox.Text=tostring(speed)
+		if active then startFn(speed) end
+	end
+	setExpanded=function(state)
+		expanded=state;toggleBtn.Text=state and "-" or "+"
+		if state then
+			ts:Create(frame,tw,{Size=_U(0,130,0,98)}):Play()
+			task.delay(0.15,function() inputRow.Visible=true end)
+		else
+			inputRow.Visible=false;ts:Create(frame,tw,{Size=_U(0,130,0,44)}):Play()
+		end
+	end
+	setActive=function(state,doShow)
+		active=state
+		if doShow then frame.Visible=true end
+		if not state then
+			frame.Visible=false;if expanded then setExpanded(false) end;stopFn();return
+		end
+		startFn(speed)
+	end
+	return {
+		show=function(spd)
+			build()
+			if spd then speed=math.max(1,spd);speedLabel.Text=tostring(speed);inputBox.Text=tostring(speed) end
+			setActive(true,true)
+		end,
+		hide=function() if not built then return end;setActive(false,false) end,
+	}
+end
+local function makeToggleHUD(label,startFn,stopFn,yOff)
+	local active=false
+	local tw=TweenInfo.new(0.15,Enum.EasingStyle.Quad)
+	local frame,stroke,nameLabel
+	local built=false
+	local function build()
+		if built then return end;built=true
+		frame=_N("Frame",sg);frame.Size=_U(0,100,0,40);frame.Position=_U(1,-120,0,20+yOff)
+		frame.BackgroundColor3=_C(22,22,22);frame.BorderSizePixel=0;frame.Active=true;frame.Visible=false
+		_N("UICorner",frame).CornerRadius=UDim.new(0,12)
+		stroke=_N("UIStroke",frame);stroke.Color=COLOR_ON;stroke.Thickness=2
+		nameLabel=_N("TextLabel",frame);nameLabel.Size=_U(1,0,1,0);nameLabel.BackgroundTransparency=1
+		nameLabel.Text=label;nameLabel.TextColor3=COLOR_ON;nameLabel.Font=_GB;nameLabel.TextSize=16;nameLabel.TextXAlignment=_TX.Center
+		local E=14
+		for _,ed in ipairs({{_U(1,0,0,E),_U(0,0,0,0)},{_U(1,0,0,E),_U(0,0,1,-E)},{_U(0,E,1,0),_U(0,0,0,0)},{_U(0,E,1,0),_U(1,-E,0,0)}}) do
+			local strip=_N("TextButton",frame);strip.Size=ed[1];strip.Position=ed[2]
+			strip.BackgroundTransparency=1;strip.Text="";strip.AutoButtonColor=false;strip.ZIndex=3
+			makeDraggable(frame,strip)
+		end
+		local clickArea=_N("TextButton",frame);clickArea.Size=_U(1,-8,1,-8);clickArea.Position=_U(0,4,0,4)
+		clickArea.BackgroundTransparency=1;clickArea.Text="";clickArea.ZIndex=2
+		makeDraggable(frame,clickArea)
+		local _th=false
+		clickArea.MouseButton1Click:Connect(function()
+			if _th then _th=false;return end
+			active=not active
+			local col=active and COLOR_ON or COLOR_OFF
+			ts:Create(stroke,tw,{Color=col}):Play();ts:Create(nameLabel,tw,{TextColor3=col}):Play()
+			if active then startFn() else stopFn() end
+		end)
+	end
+	return {
+		show=function()
+			build();active=true;frame.Visible=true
+			stroke.Color=COLOR_ON;nameLabel.TextColor3=COLOR_ON;startFn()
+		end,
+		hide=function()
+			if not built then return end
+			active=false;frame.Visible=false;stopFn()
+		end,
+		showOff=function()
+			build();active=false;frame.Visible=true
+			stroke.Color=COLOR_OFF;nameLabel.TextColor3=COLOR_OFF
+		end,
+		destroy=function()
+			if frame then frame:Destroy();frame=nil end;built=false
+		end,
+	}
+end
+local DC=getgenv().DeltaCmds
+local cmds=getgenv().DeltaCmds.Cmds
+local hudMap={}
+local hudYOffset=0
+for _,entry in ipairs(cmds) do
+	if entry.hud then
+		local alias0=entry.aliases[1]
+		local label=entry.hudLabel or (alias0:sub(1,1):upper()..alias0:sub(2))
+		local hud
+		if entry.hud=="speed" then
+			hud=makeHUD(label,entry.hudDefault or 50,
+				function(spd) if DC[entry.hudStart] then DC[entry.hudStart](spd) end end,
+				function() if DC[entry.hudStop] then DC[entry.hudStop]() end end,
+				hudYOffset)
+			hudYOffset=hudYOffset+80
+		elseif entry.hud=="toggle" then
+			hud=makeToggleHUD(label,
+				function() if DC[entry.hudStart] then DC[entry.hudStart]() end end,
+				function() if DC[entry.hudStop] then DC[entry.hudStop]() end end,
+				hudYOffset)
+			hudYOffset=hudYOffset+50
+		end
+		if hud then
+			if entry.hudOn then
+				local ons=type(entry.hudOn)=="table" and entry.hudOn or {entry.hudOn}
+				for _,a in ipairs(ons) do hudMap[a]={hud=hud,action="show",isSpeed=entry.hud=="speed"} end
+			end
+			if entry.hudOff then
+				local offs=type(entry.hudOff)=="table" and entry.hudOff or {entry.hudOff}
+				for _,a in ipairs(offs) do hudMap[a]={hud=hud,action="hide"} end
+			end
+		end
+	end
+end
+local aliasLookup={}
+for _,entry in ipairs(cmds) do
+	local label=table.concat(entry.aliases,"/")
+	for _,alias in ipairs(entry.aliases) do aliasLookup[alias]=entry end
+end
+local function updateSugg(txt)
+	if txt=="" then suggFrame.Visible=false;return end
+	local count=0;local tl=#txt;local seen={}
+	for _,entry in ipairs(cmds) do
+		for _,alias in ipairs(entry.aliases) do
+			if string.sub(alias,1,tl)==txt then
+				local label=table.concat(entry.aliases,"/")
+				if not seen[label] then
+					seen[label]=true;count=count+1
+					suggItems[count].Text=entry.args and (label.." "..entry.args) or label
+					suggItems[count].Visible=true
+					if count>=MAX_SUGG then break end
+				end
+				break
+			end
+		end
+		if count>=MAX_SUGG then break end
+	end
+	if count==0 then suggFrame.Visible=false;return end
+	for i=count+1,MAX_SUGG do suggItems[i].Text="";suggItems[i].Visible=false end
+	suggFrame.Size=_U(0,320,0,count*ITEM_H+(count-1)*ITEM_PAD);suggFrame.Visible=true
+end
+populateList = function(filter)
+	for _,child in ipairs(scroll:GetChildren()) do if child:IsA("TextLabel") then child:Destroy() end end
+	local i=1;local seen={}
+	for _,entry in ipairs(cmds) do
+		local label=table.concat(entry.aliases,"/")
+		if not seen[label] then
+			seen[label]=true
+			local show=filter==nil or filter=="" or string.find(label,filter,1,true)
+			if show then
+				local item=_N("TextLabel",scroll);item.Size=_U(1,-10,0,25);item.BackgroundTransparency=1
+				item.Text=i..". "..(entry.args and (label.." "..entry.args) or label)
+				item.TextColor3=_C(255,255,255);item.Font=_GS;item.TextSize=14;item.TextXAlignment=_TX.Left;item.LayoutOrder=i
+				i=i+1
+			end
+		end
+	end
+end
+local function runCommand(input)
+	local args={}
+	for word in string.gmatch(input,"%S+") do args[#args+1]=word:gsub(",","") end
+	if #args==0 then return end
+	local c=args[1]
+	if c=="commands" or c=="cmds" then
+		ensureCmdList();searchBox.Text="";populateList(nil);cmdListFrame.Visible=true;return
+	end
+	local h=hudMap[c]
+	if h then
+		if h.action=="show" then h.hud.show(h.isSpeed and tonumber(args[2]) or nil)
+		else h.hud.hide() end
+		return
+	end
+	local entry=aliasLookup[c]
+	if entry and entry.fn then entry.fn(args[2],args[3],args[4]) end
+end
+local cmdOpen=false
+local function closeCmd(input)
+	if not cmdOpen then return end
+	cmdOpen=false;box.Text="";suggFrame.Visible=false
+	ts:Create(cmdFrame,TweenInfo.new(0.2,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Size=_U(0,0,0,48)}):Play()
+	task.delay(0.25,function() cmdFrame.Visible=false;btnContainer.Visible=true end)
+	if input and input~="" then runCommand(input) end
+end
+btn.MouseButton1Click:Connect(function()
+	if cmdOpen then return end
+	cmdOpen=true;btnContainer.Visible=false;cmdFrame.Visible=true;cmdFrame.Size=_U(0,0,0,48)
+	ts:Create(cmdFrame,TweenInfo.new(0.3,Enum.EasingStyle.Quint,Enum.EasingDirection.Out),{Size=_U(0,260,0,38)}):Play()
+	task.delay(0.1,function() box:CaptureFocus() end)
+end)
+box:GetPropertyChangedSignal("Text"):Connect(function()
+	local txt=string.lower(box.Text)
+	if string.find(txt," ") then suggFrame.Visible=false else updateSugg(txt) end
+end)
+box.FocusLost:Connect(function(enter)
+	if clickingSugg then return end
+	local input=string.lower(box.Text)
+	if not enter and input=="" then closeCmd(nil);return end
+	closeCmd(input)
+end)
+getgenv().DeltaCmds.runCmd=runCommand
+local dynamicHuds={}
+getgenv().DeltaCmds.addButton=function(alias)
+	if dynamicHuds[alias] then return end
+	local entry=aliasLookup[alias];if not entry or not entry.fn then return end
+	local label=alias:sub(1,1):upper()..alias:sub(2)
+	local stopFn=function();end
+	local unEntry=aliasLookup["un"..alias];if unEntry and unEntry.fn then stopFn=unEntry.fn end
+	local hud=makeToggleHUD(label,function() entry.fn() end,stopFn,hudYOffset)
+	hudYOffset=hudYOffset+50;hud.showOff();dynamicHuds[alias]=hud
+end
+getgenv().DeltaCmds.removeButton=function(alias)
+	local hud=dynamicHuds[alias];if not hud then return end
+	hud.destroy();dynamicHuds[alias]=nil
+end
