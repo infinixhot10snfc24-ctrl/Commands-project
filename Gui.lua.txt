@@ -1,4 +1,5 @@
-local p = getgenv().DeltaCmds and getgenv().DeltaCmds.Player or game:GetService("Players").LocalPlayer
+repeat task.wait() until getgenv().DeltaCmds and getgenv().DeltaCmds.Cmds
+local p = getgenv().DeltaCmds.Player
 local ts = game:GetService("TweenService")
 local uis = game:GetService("UserInputService")
 local _C=Color3.fromRGB;local _U=UDim2.new;local _N=Instance.new;local _GB=Enum.Font.GothamBold;local _GS=Enum.Font.GothamSemibold;local _G=Enum.Font.Gotham;local _TX=Enum.TextXAlignment;local _UI=Enum.UserInputType
@@ -25,7 +26,6 @@ local function makeDraggable(frame,handle)
 		end
 	end)
 end
--- === COMMAND BUTTON + BAR (wajib ada saat load) ===
 local btnContainer=_N("Frame",sg)
 btnContainer.Name="Container";btnContainer.Size=_U(0,50,0,50);btnContainer.Position=_U(0,20,0,20)
 btnContainer.BackgroundTransparency=1;btnContainer.BorderSizePixel=0;btnContainer.ZIndex=10
@@ -74,8 +74,6 @@ for i=1,MAX_SUGG do
 	end)
 	suggItems[i]=item
 end
-
--- === LAZY: cmdListFrame — dibuat saat "commands" pertama kali diketik ===
 local populateList
 local cmdListFrame,scroll,searchBox
 local function ensureCmdList()
@@ -113,10 +111,7 @@ local function ensureCmdList()
 	closeBtn.MouseButton1Click:Connect(function() cmdListFrame.Visible=false end)
 	searchBox:GetPropertyChangedSignal("Text"):Connect(function() populateList(string.lower(searchBox.Text)) end)
 end
-
 local COLOR_ON=_C(80,220,120);local COLOR_OFF=_C(220,70,70)
-
--- === LAZY: makeHUD — frame dibuat saat show() pertama kali ===
 local function makeHUD(label,defaultSpd,startFn,stopFn,yOff)
 	local active,speed,expanded=false,defaultSpd,false
 	local tw=TweenInfo.new(0.15,Enum.EasingStyle.Quad)
@@ -195,8 +190,6 @@ local function makeHUD(label,defaultSpd,startFn,stopFn,yOff)
 		hide=function() if not built then return end;setActive(false,false) end,
 	}
 end
-
--- === LAZY: makeToggleHUD — frame dibuat saat show() pertama kali ===
 local function makeToggleHUD(label,startFn,stopFn,yOff)
 	local active=false
 	local tw=TweenInfo.new(0.15,Enum.EasingStyle.Quad)
@@ -246,12 +239,10 @@ local function makeToggleHUD(label,startFn,stopFn,yOff)
 		end,
 	}
 end
-
 local DC=getgenv().DeltaCmds
 local cmds=getgenv().DeltaCmds.Cmds
 local hudMap={}
 local hudYOffset=0
--- HUD loop: registrasi ke hudMap saja — instance TIDAK dibuat di sini
 for _,entry in ipairs(cmds) do
 	if entry.hud then
 		local alias0=entry.aliases[1]
@@ -368,7 +359,6 @@ box.FocusLost:Connect(function(enter)
 	closeCmd(input)
 end)
 getgenv().DeltaCmds.runCmd=runCommand
-
 local dynamicHuds={}
 getgenv().DeltaCmds.addButton=function(alias)
 	if dynamicHuds[alias] then return end
