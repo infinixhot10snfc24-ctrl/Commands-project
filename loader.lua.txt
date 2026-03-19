@@ -57,7 +57,7 @@ do
 		local t = 0
 		repeat
 			task.wait(0.1)
-			t += 0.1
+			t = t + 0.1
 			s = game:FindService(name)
 		until s or t > 5
 
@@ -71,11 +71,11 @@ do
 	local ui = {}
 
 	local scripts = {
-		{name="Fungsi.lua",url=repo.."Fungsi.lua.txt",waitEnv=false},
-		{name="Fungsi2.lua",url=repo.."Fungsi2.lua.txt",waitEnv=false},
-		{name="Fungsi3.lua",url=repo.."Fungsi3.lua.txt",waitEnv=true},
-		{name="Gui.lua",url=repo.."Gui.lua.txt",waitEnv=false},
-		{name="Gui2.lua",url=repo.."Gui2.lua.txt",waitEnv=false}
+		{name="Fungsi.lua",  url=repo.."Fungsi.lua.txt",  waitEnv=false},
+		{name="Fungsi2.lua", url=repo.."Fungsi2.lua.txt", waitEnv=false},
+		{name="Fungsi3.lua", url=repo.."Fungsi3.lua.txt", waitEnv=true},
+		{name="Gui.lua",     url=repo.."Gui.lua.txt",     waitEnv=true},
+		{name="Gui2.lua",    url=repo.."Gui2.lua.txt",    waitEnv=true},
 	}
 
 	local function fail(reason,moduleName,errDetail)
@@ -86,8 +86,15 @@ do
 		warn("[Loader UI ERROR]: "..tostring(moduleName).." -> "..tostring(errDetail))
 
 		if ui.status then
-			ui.status.Text = moduleName.."\n"..string.sub(tostring(errDetail),1,80)
+			ui.status.Text = moduleName
 			ui.status.TextColor3 = Color3.fromRGB(255,80,80)
+		end
+		if ui.detail then
+			ui.detail.Text = tostring(errDetail)
+			ui.detail.Visible = true
+		end
+		if ui.frame then
+			ts:Create(ui.frame,TweenInfo.new(0.2),{Size=UDim2.new(0,350,0,260)}):Play()
 		end
 
 		if ui.barFill then
@@ -186,13 +193,27 @@ do
 
 		local status = Instance.new("TextLabel",frame)
 		ui.status = status
-		status.Size = UDim2.new(1,0,0,30)
-		status.Position = UDim2.new(0,0,0.5,30)
+		status.Size = UDim2.new(1,-20,0,30)
+		status.Position = UDim2.new(0,10,0.5,28)
 		status.BackgroundTransparency = 1
 		status.Text = "Starting up..."
 		status.TextColor3 = Color3.fromRGB(180,180,180)
 		status.Font = Enum.Font.GothamSemibold
 		status.TextSize = 14
+		status.TextWrapped = true
+
+		local detail = Instance.new("TextLabel",frame)
+		ui.detail = detail
+		detail.Size = UDim2.new(1,-20,0,60)
+		detail.Position = UDim2.new(0,10,0.5,62)
+		detail.BackgroundTransparency = 1
+		detail.Text = ""
+		detail.TextColor3 = Color3.fromRGB(255,100,100)
+		detail.Font = Enum.Font.GothamSemibold
+		detail.TextSize = 11
+		detail.TextWrapped = true
+		detail.TextXAlignment = Enum.TextXAlignment.Left
+		detail.Visible = false
 
 		ts:Create(bg,TweenInfo.new(0.5),{BackgroundTransparency=0.4}):Play()
 		ts:Create(frame,TweenInfo.new(0.6,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,350,0,180)}):Play()
@@ -207,12 +228,13 @@ do
 	end
 
 	local function validate(data)
-		if type(data) ~= "string" then return nil end
-		if #data < 80 then return nil end
+		if type(data) ~= "string" then return nil, "not a string" end
+		if #data < 80 then return nil, "too short" end
 		local lower = string.lower(data)
-		if string.find(lower,"<html") or string.find(lower,"<!doctype") then return nil end
-		if not string.find(data,"function") then return nil end
-		return loadstring(data)
+		if string.find(lower,"<html") or string.find(lower,"<!doctype") then return nil, "html content" end
+		if not string.find(data,"function") then return nil, "no function keyword" end
+		local f, err = loadstring(data)
+		return f, err
 	end
 
 	local function downloadScript(url,name)
@@ -244,11 +266,13 @@ do
 			local t=os.clock()
 			while not done and os.clock()-t<5 do task.wait() end
 
-			local f=validate(result)
+			local f, ferr=validate(result)
 			if done and f then
 				print("[Loader] Success -> "..name)
 				env.DeltaCache[url]=result
 				return result,f
+			else
+				print("[Loader] Validate fail -> "..name.." : "..tostring(ferr))
 			end
 		end
 
@@ -259,8 +283,9 @@ do
 		if not hasFileAPI or not isfile(name) then return nil,nil end
 		local ok,data = pcall(readfile,name)
 		if not ok then return nil,nil end
-		local f=validate(data)
+		local f, ferr=validate(data)
 		if not f then
+			print("[Loader] Local validate fail: "..tostring(ferr))
 			pcall(delfile,name)
 			return nil,nil
 		end
@@ -340,7 +365,7 @@ do
 
 				results[i]={code=code,func=func,name=s.name}
 				states[i]=true
-				finished+=1
+				finished = finished + 1
 			end)
 		end
 
@@ -396,7 +421,7 @@ do
 
 			if s.waitEnv then
 				local t=0
-				repeat task.wait(0.1) t+=0.1 until env.DeltaCmds or t>=10
+				repeat task.wait(0.1) t = t + 0.1 until (env.DeltaCmds and env.DeltaCmds.Cmds) or t>=10
 				if t>=10 then
 					return fail("Timeout","DeltaCmds Env","Not loaded")
 				end
