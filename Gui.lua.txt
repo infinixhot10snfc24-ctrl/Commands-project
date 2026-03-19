@@ -364,7 +364,7 @@ getgenv().DeltaCmds.addButton=function(alias)
 	if dynamicHuds[alias] then return end
 	local entry=aliasLookup[alias];if not entry or not entry.fn then return end
 	local label=alias:sub(1,1):upper()..alias:sub(2)
-	local stopFn=function();end
+	local stopFn=function() end
 	local unEntry=aliasLookup["un"..alias];if unEntry and unEntry.fn then stopFn=unEntry.fn end
 	local hud=makeToggleHUD(label,function() entry.fn() end,stopFn,hudYOffset)
 	hudYOffset+=50;hud.showOff();dynamicHuds[alias]=hud
