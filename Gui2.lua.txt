@@ -1,21 +1,14 @@
-repeat task.wait() until getgenv().DeltaCmds
-	and getgenv().DeltaCmds.Cmds
-	and getgenv().DeltaCmds.Pickers
-
+repeat task.wait() until getgenv().DeltaCmds and getgenv().DeltaCmds.Cmds and getgenv().DeltaCmds.Pickers
 local ts  = game:GetService("TweenService")
 local _C  = Color3.fromRGB
 local _U  = UDim2.new
 local _N  = Instance.new
 local _GB = Enum.Font.GothamBold
 local _GS = Enum.Font.GothamSemibold
-
 local sg = _N("ScreenGui", game.CoreGui)
 sg.Name="DeltaGui2"; sg.ResetOnSpawn=false; sg.ZIndexBehavior=Enum.ZIndexBehavior.Sibling; sg.IgnoreGuiInset=true
-
 local pickerOpen = false
 local warnOpen   = false
-
--- === LAZY: pickerFrame — dibuat saat showPicker pertama dipanggil ===
 local overlay, pickerFrame, titleLabel, subtitleLabel, closeBtn, btnContainer
 local pickerBuilt = false
 local function buildPicker()
@@ -53,7 +46,6 @@ local function buildPicker()
 	subtitleLabel.BackgroundTransparency=1; subtitleLabel.Text=""; subtitleLabel.TextColor3=_C(60,60,80)
 	subtitleLabel.Font=_GS; subtitleLabel.TextSize=10; subtitleLabel.ZIndex=22
 end
-
 local function makePickerBtn(parent,label,sub,accent)
 	local btn=_N("TextButton",parent); btn.Size=_U(0,148,0,62); btn.BackgroundColor3=_C(18,18,26)
 	btn.AutoButtonColor=false; btn.Text=""; btn.ZIndex=23
@@ -71,10 +63,8 @@ local function makePickerBtn(parent,label,sub,accent)
 	btn.MouseLeave:Connect(function() ts:Create(btn,tw,{BackgroundColor3=_C(18,18,26)}):Play(); ts:Create(bs,tw,{Thickness=1.2}):Play() end)
 	return btn
 end
-
 local BTN_W,BTN_GAP,SIDE_PAD=148,14,32
 local function calcWidth(n) return n*BTN_W+(n-1)*BTN_GAP+SIDE_PAD end
-
 local function showPicker(pickerDef,callback)
 	if pickerOpen then return end
 	pickerOpen=true
@@ -104,8 +94,6 @@ local function showPicker(pickerDef,callback)
 		conns[#conns+1]=item.btn.MouseButton1Click:Connect(function() pick(v) end)
 	end
 end
-
--- === LAZY: warnFrame — dibuat saat showHookWarn pertama dipanggil ===
 local warnOverlay, warnFrame, cancelBtn, continueBtn
 local warnBuilt = false
 local function buildWarn()
@@ -153,7 +141,6 @@ local function buildWarn()
 	cancelBtn  =makeWarnBtn("Cancel",  _C(35,35,45), _C(180,180,200))
 	continueBtn=makeWarnBtn("Continue",_C(180,40,40),_C(255,255,255))
 end
-
 local function showHookWarn(callback)
 	if warnOpen then return end; warnOpen=true
 	buildWarn()
@@ -171,7 +158,6 @@ local function showHookWarn(callback)
 	conns[#conns+1]=continueBtn.MouseButton1Click:Connect(function() close(true) end)
 	conns[#conns+1]=cancelBtn.MouseButton1Click:Connect(function() close(false) end)
 end
-
 local function makeACGui()
 	local UIS,GS=game:GetService("UserInputService"),game:GetService("GuiService")
 	local pl=getgenv().DeltaCmds and getgenv().DeltaCmds.Player or game:GetService("Players").LocalPlayer
@@ -223,7 +209,6 @@ local function _hookAC()
 	end end
 end
 _hookAC()
-
 local function makeStatsGui()
 	local ST=game:GetService("Stats")
 	local pl=getgenv().DeltaCmds and getgenv().DeltaCmds.Player or game:GetService("Players").LocalPlayer
@@ -248,14 +233,11 @@ local function _hookStats()
 	end end
 end
 _hookStats()
-
 getgenv().DeltaCmds.showHookWarn=showHookWarn
-
 local aliasMap={}
 for _,entry in ipairs(getgenv().DeltaCmds.Cmds) do
 	for _,alias in ipairs(entry.aliases) do aliasMap[alias]=entry end
 end
-
 for _,pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do
 	local cmdEntry=aliasMap[pickerDef.cmdAlias]
 	if cmdEntry then
@@ -299,7 +281,6 @@ for _,pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do
 		if stopEntry then stopEntry.fn=pickerDef.stopFn end
 	end
 end
-
 local pickerAliases={}
 for _,pickerDef in ipairs(getgenv().DeltaCmds.Pickers) do pickerAliases[pickerDef.cmdAlias]=true end
 for _,entry in ipairs(getgenv().DeltaCmds.Cmds) do
