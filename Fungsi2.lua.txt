@@ -16,7 +16,6 @@ local neConns, avisConns = {}, {}
 local neHookOrig = nil
 local alGui, alHB, alPac, alPrc
 local akActive, akOrig
-
 local function stopVw()
 	clearActive("vw")
 	if vwConn     then vwConn:Disconnect();     vwConn     = nil end
@@ -152,7 +151,6 @@ getgenv().DeltaCmds.startFc  = startFc
 getgenv().DeltaCmds.stopFc   = stopFc
 getgenv().DeltaCmds.startFrz = startFrz
 getgenv().DeltaCmds.stopFrz  = stopFrz
-
 local tps = game:GetService("TeleportService")
 local hs  = game:GetService("HttpService")
 local function startAk()
@@ -290,6 +288,7 @@ local function stopNoEffect()
 		neHookOrig=nil
 	end
 end
+local processed = setmetatable({}, {__mode = "k"})
 local function activateNoEffect(mode)
 	if isActive("ne") then return end; setActive("ne")
 	stopNoEffect()
@@ -328,21 +327,43 @@ local function activateNoEffect(mode)
 		if mode=="hook" then
 			local m=getrawmetatable(game);setreadonly(m,false)
 			neHookOrig=m.__newindex
-			m.__newindex=newcclosure(function(s,k,vv)
+			m.__newindex=newcclosure(function(s,k2,vv)
 				if typeof(s)=="Instance" then
-					if s:IsA("ParticleEmitter")then
-						if k=="Parent"then neHookOrig(s,"Enabled",false);neHookOrig(s,"Rate",0);return neHookOrig(s,k,vv)end
-						if k=="Enabled"then return neHookOrig(s,k,false)elseif k=="Rate"then return neHookOrig(s,k,0)
-						elseif k=="Speed"or k=="Lifetime"then return neHookOrig(s,k,NumberRange.new(0))
-						elseif k=="Size"then return neHookOrig(s,k,NumberSequence.new(0))end
-					elseif s:IsA("Trail")or s:IsA("Beam")then
-						if k=="Parent"then neHookOrig(s,"Enabled",false);return neHookOrig(s,k,vv)end
-						if k=="Enabled"then return neHookOrig(s,k,false)elseif k=="Width0"or k=="Width1"then return neHookOrig(s,k,0)end
-					elseif s:IsA("PointLight")or s:IsA("SpotLight")or s:IsA("SurfaceLight")then
-						if k=="Enabled"then return neHookOrig(s,k,false)elseif k=="Range"then return neHookOrig(s,k,0)end
+					if processed[s] then return neHookOrig(s,k2,vv) end
+					if k2=="Parent" then
+						processed[s]=true
+						if s:IsA("ParticleEmitter") then
+							neHookOrig(s,"Enabled",false);neHookOrig(s,"Rate",0)
+							neHookOrig(s,"Lifetime",NumberRange.new(0));neHookOrig(s,"Speed",NumberRange.new(0))
+							neHookOrig(s,"Size",NumberSequence.new(0));neHookOrig(s,"Transparency",NumberSequence.new(1))
+						elseif s:IsA("Trail")or s:IsA("Beam") then
+							neHookOrig(s,"Enabled",false);neHookOrig(s,"Width0",0);neHookOrig(s,"Width1",0)
+							neHookOrig(s,"Transparency",NumberSequence.new(1))
+						elseif s:IsA("Explosion") then
+							neHookOrig(s,"BlastRadius",0);neHookOrig(s,"BlastPressure",0)
+						elseif s:IsA("Fire")or s:IsA("Smoke")or s:IsA("Sparkles") then
+							neHookOrig(s,"Enabled",false)
+						elseif s:IsA("PointLight")or s:IsA("SpotLight")or s:IsA("SurfaceLight") then
+							neHookOrig(s,"Enabled",false);neHookOrig(s,"Range",0)
+						end
+						return neHookOrig(s,k2,vv)
+					end
+					if s:IsA("ParticleEmitter") then
+						if k2=="Enabled" then return neHookOrig(s,k2,false)
+						elseif k2=="Rate" then return neHookOrig(s,k2,0)
+						elseif k2=="Speed"or k2=="Lifetime" then return neHookOrig(s,k2,NumberRange.new(0))
+						elseif k2=="Size" then return neHookOrig(s,k2,NumberSequence.new(0))
+						elseif k2=="Transparency" then return neHookOrig(s,k2,NumberSequence.new(1)) end
+					elseif s:IsA("Trail")or s:IsA("Beam") then
+						if k2=="Enabled" then return neHookOrig(s,k2,false)
+						elseif k2=="Width0"or k2=="Width1" then return neHookOrig(s,k2,0)
+						elseif k2=="Transparency" then return neHookOrig(s,k2,NumberSequence.new(1)) end
+					elseif s:IsA("PointLight")or s:IsA("SpotLight")or s:IsA("SurfaceLight") then
+						if k2=="Enabled" then return neHookOrig(s,k2,false)
+						elseif k2=="Range" then return neHookOrig(s,k2,0) end
 					end
 				end
-				return neHookOrig(s,k,vv)
+				return neHookOrig(s,k2,vv)
 			end)
 			setreadonly(m,true)
 		end
@@ -405,7 +426,6 @@ local function startAutoClick()
 end
 local function stopAutoClick() clearActive("ac"); local ac=getgenv().DeltaCmds.AC; if ac then ac.active=false end end
 getgenv().DeltaCmds.AC = {active=false, target=Vector2.new(0,0), mode="Mobile", delay=0.3}
-
 local newCmds = {
 	{aliases={"view","watch"},              args="[player]",  fn=function(v) if v then startVw(v) else stopVw() end end},
 	{aliases={"unview","unwatch"},           fn=stopVw},
@@ -439,7 +459,6 @@ local cmds = getgenv().DeltaCmds.Cmds
 local insertAt = #cmds
 for i, entry in ipairs(cmds) do if entry.aliases[1] == "commands" then insertAt = i; break end end
 for i, entry in ipairs(newCmds) do table.insert(cmds, insertAt+i-1, entry) end
-
 getgenv().DeltaCmds.Pickers = getgenv().DeltaCmds.Pickers or {}
 table.insert(getgenv().DeltaCmds.Pickers, {
 	cmdAlias="noeffect", stopAlias="unnoeffect", title="NOEFFECT", subtitle="Select method",
