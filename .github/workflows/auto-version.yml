@@ -20,15 +20,26 @@ jobs:
         run: |
           echo "{" > versions.json
 
+          first=true
+
           for file in Fungsi.lua.txt Fungsi2.lua.txt Fungsi3.lua.txt Gui.lua.txt Gui2.lua.txt
           do
             if [ -f "$file" ]; then
+              name=$(echo "$file" | sed 's/.txt$//')
               hash=$(sha1sum "$file" | awk '{print $1}')
-              echo "\"$file\": \"$hash\"," >> versions.json
+              len=$(wc -c < "$file" | tr -d ' ')
+
+              if [ "$first" = true ]; then
+                first=false
+              else
+                echo "," >> versions.json
+              fi
+
+              echo -n "\"$name\": {\"hash\": \"$hash\", \"len\": $len}" >> versions.json
             fi
           done
 
-          sed -i '$ s/,$//' versions.json
+          echo "" >> versions.json
           echo "}" >> versions.json
 
       - name: Commit changes
