@@ -1,7 +1,7 @@
 {
-"Fungsi.lua.txt": "400a5fec5389361425d6fdfd28c9e4e1450e171b",
-"Fungsi2.lua.txt": "b9678a5882394a675dcf6d4e548dc2ef88ed9844",
-"Fungsi3.lua.txt": "ffa73bda6d837ea5dbb58343b83dab9fba496596",
-"Gui.lua.txt": "09e78f5939b637b44fd605ee5adb3d1b2661580f",
-"Gui2.lua.txt": "9519d5345adcfc34aa2e9e07249d627fa75f8bc4"
+"Fungsi.lua": {"hash": "400a5fec5389361425d6fdfd28c9e4e1450e171b", "len": 25054},
+"Fungsi2.lua": {"hash": "b9678a5882394a675dcf6d4e548dc2ef88ed9844", "len": 22114},
+"Fungsi3.lua": {"hash": "ffa73bda6d837ea5dbb58343b83dab9fba496596", "len": 11131},
+"Gui.lua": {"hash": "09e78f5939b637b44fd605ee5adb3d1b2661580f", "len": 18090},
+"Gui2.lua": {"hash": "9519d5345adcfc34aa2e9e07249d627fa75f8bc4", "len": 17638}
 }
