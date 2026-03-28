@@ -1,437 +1,366 @@
-do
-	local env = getgenv()
-
-	if env._DeltaLoaded then
-		if env._DeltaReloading then return end
-		env._DeltaReloading = true
-
-		if env.DeltaCleanup then
-			for _,fn in ipairs(env.DeltaCleanup) do
-				pcall(fn)
-			end
-		end
-
-		if env.DeltaObjects then
-			for _,obj in ipairs(env.DeltaObjects) do
-				if typeof(obj)=="Instance" then
-					pcall(function() obj:Destroy() end)
-				elseif typeof(obj)=="RBXScriptConnection" then
-					pcall(function() obj:Disconnect() end)
-				end
-			end
-		end
-
-		env.DeltaObjects = {}
-		env.DeltaCleanup = {}
-		env.DeltaCache = {}
-
-		task.wait(0.1)
-	end
-
-	env._DeltaReloading = false
-	env._DeltaLoaded = true
-
-	local ts = game:GetService("TweenService")
-	local cg = game:GetService("CoreGui")
-	local players = game:GetService("Players")
-	local HttpService = game:GetService("HttpService")
-
-	local VERSION = "1.0.0"
-	local repo = "https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/"
-
-	local hasFileAPI = (writefile and readfile and isfile and delfile) and true or false
-
-	env.DeltaObjects = env.DeltaObjects or {}
-	env.DeltaCleanup = env.DeltaCleanup or {}
-	env.DeltaCache = {}
-
-	local function getService(name)
-		if env.getService then
-			local ok,res = pcall(env.getService,name)
-			if ok and res then return res end
-		end
-
-		local s = game:FindService(name)
-		if s then return s end
-
-		local t = 0
-		repeat
-			task.wait(0.1)
-			t = t + 0.1
-			s = game:FindService(name)
-		until s or t > 5
-
-		return s
-	end
-
-	local onlineVersions = {}
-	local localVersions = {}
-	local versionsOK = false
-
-	local ui = {}
-
-	local scripts = {
-		{name="Fungsi.lua",  url=repo.."Fungsi.lua.txt",  waitEnv=false},
-		{name="Fungsi2.lua", url=repo.."Fungsi2.lua.txt", waitEnv=false},
-		{name="Fungsi3.lua", url=repo.."Fungsi3.lua.txt", waitEnv=true},
-		{name="Gui.lua",     url=repo.."Gui.lua.txt",     waitEnv=true},
-		{name="Gui2.lua",    url=repo.."Gui2.lua.txt",    waitEnv=true},
-	}
-
-	local function fail(reason,moduleName,errDetail)
-		print("[Loader] Failure detected")
-		print("Reason:",reason)
-		print("Module:",moduleName)
-		print("Detail:",tostring(errDetail))
-		warn("[Loader UI ERROR]: "..tostring(moduleName).." -> "..tostring(errDetail))
-
-		if ui.status then
-			ui.status.Text = moduleName
-			ui.status.TextColor3 = Color3.fromRGB(255,80,80)
-		end
-		if ui.detail then
-			ui.detail.Text = tostring(errDetail)
-			ui.detail.Visible = true
-		end
-		if ui.frame then
-			ts:Create(ui.frame,TweenInfo.new(0.2),{Size=UDim2.new(0,350,0,260)}):Play()
-		end
-
-		if ui.barFill then
-			ui.barFill.BackgroundColor3 = Color3.fromRGB(255,0,0)
-		end
-
-		task.wait(10)
-
-		if ui.frame then
-			ts:Create(ui.frame,TweenInfo.new(0.4,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)}):Play()
-		end
-
-		if ui.bg then
-			ts:Create(ui.bg,TweenInfo.new(0.4),{BackgroundTransparency=1}):Play()
-		end
-
-		task.wait(0.4)
-
-		if ui.sg then
-			pcall(function() ui.sg:Destroy() end)
-		end
-
-		env.DeltaObjects = {}
-		env.DeltaCleanup = {}
-		env.DeltaCache = {}
-	end
-
-	local function createLoaderUI()
-		local sg = Instance.new("ScreenGui")
-		ui.sg = sg
-		sg.Name = "DeltaLoaderUI"
-		sg.IgnoreGuiInset = true
-		table.insert(env.DeltaObjects,sg)
-
-		local success = pcall(function() sg.Parent = cg end)
-		if not success then
-			sg.Parent = players.LocalPlayer:WaitForChild("PlayerGui")
-		end
-
-		local bg = Instance.new("Frame",sg)
-		ui.bg = bg
-		bg.Size = UDim2.new(1,0,1,0)
-		bg.BackgroundColor3 = Color3.fromRGB(0,0,0)
-		bg.BackgroundTransparency = 1
-
-		local frame = Instance.new("Frame",bg)
-		ui.frame = frame
-		frame.Size = UDim2.new(0,0,0,0)
-		frame.Position = UDim2.new(0.5,0,0.5,0)
-		frame.AnchorPoint = Vector2.new(0.5,0.5)
-		frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-		frame.ClipsDescendants = true
-
-		local corner = Instance.new("UICorner",frame)
-		corner.CornerRadius = UDim.new(0,12)
-
-		local stroke = Instance.new("UIStroke",frame)
-		stroke.Color = Color3.fromRGB(0,170,255)
-		stroke.Thickness = 2
-
-		local title = Instance.new("TextLabel",frame)
-		title.Size = UDim2.new(1,0,0,50)
-		title.Position = UDim2.new(0,0,0,20)
-		title.BackgroundTransparency = 1
-		title.Text = "DELTA COMMANDS"
-		title.TextColor3 = Color3.fromRGB(255,255,255)
-		title.Font = Enum.Font.GothamBlack
-		title.TextSize = 24
-
-		local version = Instance.new("TextLabel",frame)
-		version.Size = UDim2.new(1,0,0,18)
-		version.Position = UDim2.new(0,0,0,58)
-		version.BackgroundTransparency = 1
-		version.Text = "v"..VERSION
-		version.TextColor3 = Color3.fromRGB(150,150,150)
-		version.Font = Enum.Font.Gotham
-		version.TextSize = 12
-
-		local barBg = Instance.new("Frame",frame)
-		ui.barBg = barBg
-		barBg.Size = UDim2.new(0,280,0,10)
-		barBg.Position = UDim2.new(0.5,0,0.5,10)
-		barBg.AnchorPoint = Vector2.new(0.5,0.5)
-		barBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
-
-		local barCorner = Instance.new("UICorner",barBg)
-		barCorner.CornerRadius = UDim.new(1,0)
-
-		local barFill = Instance.new("Frame",barBg)
-		ui.barFill = barFill
-		barFill.Size = UDim2.new(0,0,1,0)
-		barFill.BackgroundColor3 = Color3.fromRGB(0,170,255)
-
-		local fillCorner = Instance.new("UICorner",barFill)
-		fillCorner.CornerRadius = UDim.new(1,0)
-
-		local status = Instance.new("TextLabel",frame)
-		ui.status = status
-		status.Size = UDim2.new(1,-20,0,30)
-		status.Position = UDim2.new(0,10,0.5,28)
-		status.BackgroundTransparency = 1
-		status.Text = "Starting up..."
-		status.TextColor3 = Color3.fromRGB(180,180,180)
-		status.Font = Enum.Font.GothamSemibold
-		status.TextSize = 14
-		status.TextWrapped = true
-
-		local detail = Instance.new("TextLabel",frame)
-		ui.detail = detail
-		detail.Size = UDim2.new(1,-20,0,60)
-		detail.Position = UDim2.new(0,10,0.5,62)
-		detail.BackgroundTransparency = 1
-		detail.Text = ""
-		detail.TextColor3 = Color3.fromRGB(255,100,100)
-		detail.Font = Enum.Font.GothamSemibold
-		detail.TextSize = 11
-		detail.TextWrapped = true
-		detail.TextXAlignment = Enum.TextXAlignment.Left
-		detail.Visible = false
-
-		ts:Create(bg,TweenInfo.new(0.5),{BackgroundTransparency=0.4}):Play()
-		ts:Create(frame,TweenInfo.new(0.6,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,350,0,180)}):Play()
-		task.wait(0.8)
-	end
-
-	local function updateProgress(pct,txt)
-		if ui.status then ui.status.Text = txt end
-		if ui.barFill then
-			ts:Create(ui.barFill,TweenInfo.new(0.3),{Size=UDim2.new(pct,0,1,0)}):Play()
-		end
-	end
-
-	local function validate(data)
-		if type(data) ~= "string" then return nil, "not a string" end
-		if #data < 80 then return nil, "too short" end
-		local lower = string.lower(data)
-		if string.find(lower,"<html") or string.find(lower,"<!doctype") then return nil, "html content" end
-		if not string.find(data,"function") then return nil, "no function keyword" end
-		local f, err = loadstring(data)
-		return f, err
-	end
-
-	local function downloadScript(url,name)
-		local cache = env.DeltaCache
-
-		if cache[url] then
-			local f = validate(cache[url])
-			if f then
-				print("[Loader] Cache hit -> "..name)
-				return cache[url],f
-			end
-			cache[url] = nil
-		end
-
-		for attempt = 1,3 do
-			print("[Loader] Attempt "..attempt.." -> "..name)
-
-			local result
-			local done=false
-
-			task.spawn(function()
-				local ok,res = pcall(function()
-					return game:HttpGet(url)
-				end)
-				if ok then result=res end
-				done=true
-			end)
-
-			local t=os.clock()
-			while not done and os.clock()-t<5 do task.wait() end
-
-			local f, ferr=validate(result)
-			if done and f then
-				print("[Loader] Success -> "..name)
-				env.DeltaCache[url]=result
-				return result,f
-			else
-				print("[Loader] Validate fail -> "..name.." : "..tostring(ferr))
-			end
-		end
-
-		return nil,nil
-	end
-
-	local function loadLocal(name)
-		if not hasFileAPI or not isfile(name) then return nil,nil end
-		local ok,data = pcall(readfile,name)
-		if not ok then return nil,nil end
-		local f, ferr=validate(data)
-		if not f then
-			print("[Loader] Local validate fail: "..tostring(ferr))
-			pcall(delfile,name)
-			return nil,nil
-		end
-		return data,f
-	end
-
-	createLoaderUI()
-	updateProgress(0,"Initializing...")
-
-	task.spawn(function()
-		updateProgress(0.05,"Checking updates...")
-
-		pcall(function()
-			local raw = game:HttpGet(repo.."versions.json")
-			local decoded = HttpService:JSONDecode(raw)
-			if type(decoded) == "table" then
-				onlineVersions = decoded
-				versionsOK = true
-			end
-		end)
-
-		if hasFileAPI and isfile("versions.json") then
-			pcall(function()
-				local decoded = HttpService:JSONDecode(readfile("versions.json"))
-				if type(decoded) == "table" then
-					localVersions = decoded
-				end
-			end)
-		end
-
-		local results={}
-		local states={}
-		local finished=0
-		local total=#scripts
-		local timeout=10
-		local start=os.clock()
-
-		updateProgress(0.1,"Loading modules...")
-
-		for i,s in ipairs(scripts) do
-			states[i]=false
-			task.spawn(function()
-				local code,func
-
-				pcall(function()
-					if hasFileAPI and versionsOK then
-						local onlineHash = onlineVersions[s.name]
-						local localHash = localVersions[s.name]
-
-						if onlineHash and localHash == onlineHash then
-							code,func = loadLocal(s.name)
-						else
-							pcall(function()
-								if isfile(s.name) then delfile(s.name) end
-							end)
-						end
-					end
-
-					if not code then
-						code,func=downloadScript(s.url,s.name)
-						if code and hasFileAPI then
-							pcall(function()
-								writefile(s.name,code)
-								local verify=readfile(s.name)
-								if not validate(verify) then delfile(s.name) end
-							end)
-
-							if versionsOK and onlineVersions[s.name] then
-								localVersions[s.name] = onlineVersions[s.name]
-								pcall(function()
-									writefile("versions.json", HttpService:JSONEncode(localVersions))
-								end)
-							end
-						end
-					end
-				end)
-
-				results[i]={code=code,func=func,name=s.name}
-				states[i]=true
-				finished = finished + 1
-			end)
-		end
-
-		while finished<total and os.clock()-start<timeout do
-			updateProgress(0.1 + (finished/total)*0.5,"Loading modules...")
-			task.wait(0.05)
-		end
-
-		for i=1,#scripts do
-			while not states[i] do task.wait() end
-		end
-
-		for i,s in ipairs(scripts) do
-			local r=results[i]
-			if not r or not r.func then
-				return fail("Invalid Script",s.name,"Validation failed")
-			end
-
-			local success=false
-			local lastErr
-
-			for attempt=1,3 do
-				updateProgress(0.6 + (i/total)*0.3,"Executing "..s.name.." (try "..attempt..")")
-
-				local ok,err=pcall(r.func)
-				if ok then
-					success=true
-					break
-				end
-
-				lastErr=err
-
-				if hasFileAPI then
-					pcall(function()
-						if isfile(s.name) then delfile(s.name) end
-					end)
-				end
-
-				local newCode,newFunc=downloadScript(s.url,s.name)
-				if newCode and newFunc then
-					r.func=newFunc
-					if hasFileAPI then
-						pcall(function() writefile(s.name,newCode) end)
-					end
-				end
-
-				task.wait(0.1)
-			end
-
-			if not success then
-				return fail("Execution Failed",s.name,lastErr)
-			end
-
-			if s.waitEnv then
-				local t=0
-				repeat task.wait(0.1) t = t + 0.1 until (env.DeltaCmds and env.DeltaCmds.Cmds) or t>=10
-				if t>=10 then
-					return fail("Timeout","DeltaCmds Env","Not loaded")
-				end
-			end
-		end
-
-		updateProgress(1,"Finalizing...")
-		task.wait(0.5)
-
-		if ui.sg then ui.sg:Destroy() end
-		env.DeltaObjects={}
-	end)
+do  
+	local env = getgenv()  
+
+	if env._DeltaLoaded then  
+		if env._DeltaReloading then return end  
+		env._DeltaReloading = true  
+
+		if env.DeltaCleanup then  
+			for _,fn in ipairs(env.DeltaCleanup) do  
+				pcall(fn)  
+			end  
+		end  
+
+		if env.DeltaObjects then  
+			for _,obj in ipairs(env.DeltaObjects) do  
+				if typeof(obj)=="Instance" then  
+					pcall(function() obj:Destroy() end)  
+				elseif typeof(obj)=="RBXScriptConnection" then  
+					pcall(function() obj:Disconnect() end)  
+				end  
+			end  
+		end  
+
+		env.DeltaObjects = {}  
+		env.DeltaCleanup = {}  
+		env.DeltaCache = {}  
+
+		task.wait(0.1)  
+	end  
+
+	env._DeltaReloading = false  
+	env._DeltaLoaded = true  
+
+	local ts = game:GetService("TweenService")  
+	local cg = game:GetService("CoreGui")  
+	local players = game:GetService("Players")  
+	local HttpService = game:GetService("HttpService")  
+
+	local VERSION = "1.0.0"  
+	local repo = "https://raw.githubusercontent.com/infinixhot10snfc24-ctrl/Commands-project/refs/heads/main/"  
+
+	local hasFileAPI = (writefile and readfile and isfile and delfile) and true or false  
+
+	env.DeltaObjects = env.DeltaObjects or {}  
+	env.DeltaCleanup = env.DeltaCleanup or {}  
+	env.DeltaCache = {}  
+
+	local onlineVersions = {}  
+	local localVersions = {}  
+	local versionsOK = false  
+
+	local ui = {}  
+
+	local scripts = {  
+		{name="Fungsi.lua",  url=repo.."Fungsi.lua.txt",  waitEnv=false},  
+		{name="Fungsi2.lua", url=repo.."Fungsi2.lua.txt", waitEnv=false},  
+		{name="Fungsi3.lua", url=repo.."Fungsi3.lua.txt", waitEnv=true},  
+		{name="Gui.lua",     url=repo.."Gui.lua.txt",     waitEnv=true},  
+		{name="Gui2.lua",    url=repo.."Gui2.lua.txt",    waitEnv=true},  
+	}  
+
+	local function fail(reason,moduleName,errDetail)  
+		print("[Loader] Failure detected")  
+		print("Reason:",reason)  
+		print("Module:",moduleName)  
+		print("Detail:",tostring(errDetail))  
+		warn("[Loader UI ERROR]: "..tostring(moduleName).." -> "..tostring(errDetail))  
+
+		if ui.status then  
+			ui.status.Text = moduleName  
+			ui.status.TextColor3 = Color3.fromRGB(255,80,80)  
+		end  
+		if ui.detail then  
+			ui.detail.Text = tostring(errDetail)  
+			ui.detail.Visible = true  
+		end  
+		if ui.frame then  
+			ts:Create(ui.frame,TweenInfo.new(0.2),{Size=UDim2.new(0,350,0,260)}):Play()  
+		end  
+
+		if ui.barFill then  
+			ui.barFill.BackgroundColor3 = Color3.fromRGB(255,0,0)  
+		end  
+
+		task.wait(10)  
+
+		if ui.frame then  
+			ts:Create(ui.frame,TweenInfo.new(0.4,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)}):Play()  
+		end  
+
+		if ui.bg then  
+			ts:Create(ui.bg,TweenInfo.new(0.4),{BackgroundTransparency=1}):Play()  
+		end  
+
+		task.wait(0.4)  
+
+		if ui.sg then  
+			pcall(function() ui.sg:Destroy() end)  
+		end  
+
+		env.DeltaObjects = {}  
+		env.DeltaCleanup = {}  
+		env.DeltaCache = {}  
+	end  
+
+	local function createLoaderUI()  
+		local sg = Instance.new("ScreenGui")  
+		ui.sg = sg  
+		sg.Name = "DeltaLoaderUI"  
+		sg.IgnoreGuiInset = true  
+		table.insert(env.DeltaObjects,sg)  
+
+		local success = pcall(function() sg.Parent = cg end)  
+		if not success then  
+			sg.Parent = players.LocalPlayer:WaitForChild("PlayerGui")  
+		end  
+
+		local bg = Instance.new("Frame",sg)  
+		ui.bg = bg  
+		bg.Size = UDim2.new(1,0,1,0)  
+		bg.BackgroundColor3 = Color3.fromRGB(0,0,0)  
+		bg.BackgroundTransparency = 1  
+
+		local frame = Instance.new("Frame",bg)  
+		ui.frame = frame  
+		frame.Size = UDim2.new(0,0,0,0)  
+		frame.Position = UDim2.new(0.5,0,0.5,0)  
+		frame.AnchorPoint = Vector2.new(0.5,0.5)  
+		frame.BackgroundColor3 = Color3.fromRGB(20,20,20)  
+		frame.ClipsDescendants = true  
+
+		local corner = Instance.new("UICorner",frame)  
+		corner.CornerRadius = UDim.new(0,12)  
+
+		local stroke = Instance.new("UIStroke",frame)  
+		stroke.Color = Color3.fromRGB(0,170,255)  
+		stroke.Thickness = 2  
+
+		local title = Instance.new("TextLabel",frame)  
+		title.Size = UDim2.new(1,0,0,50)  
+		title.Position = UDim2.new(0,0,0,20)  
+		title.BackgroundTransparency = 1  
+		title.Text = "DELTA COMMANDS"  
+		title.TextColor3 = Color3.fromRGB(255,255,255)  
+		title.Font = Enum.Font.GothamBlack  
+		title.TextSize = 24  
+
+		local version = Instance.new("TextLabel",frame)  
+		version.Size = UDim2.new(1,0,0,18)  
+		version.Position = UDim2.new(0,0,0,58)  
+		version.BackgroundTransparency = 1  
+		version.Text = "v"..VERSION  
+		version.TextColor3 = Color3.fromRGB(150,150,150)  
+		version.Font = Enum.Font.Gotham  
+		version.TextSize = 12  
+
+		local barBg = Instance.new("Frame",frame)  
+		ui.barBg = barBg  
+		barBg.Size = UDim2.new(0,280,0,10)  
+		barBg.Position = UDim2.new(0.5,0,0.5,10)  
+		barBg.AnchorPoint = Vector2.new(0.5,0.5)  
+		barBg.BackgroundColor3 = Color3.fromRGB(40,40,40)  
+
+		local barCorner = Instance.new("UICorner",barBg)  
+		barCorner.CornerRadius = UDim.new(1,0)  
+
+		local barFill = Instance.new("Frame",barBg)  
+		ui.barFill = barFill  
+		barFill.Size = UDim2.new(0,0,1,0)  
+		barFill.BackgroundColor3 = Color3.fromRGB(0,170,255)  
+
+		local fillCorner = Instance.new("UICorner",barFill)  
+		fillCorner.CornerRadius = UDim.new(1,0)  
+
+		local status = Instance.new("TextLabel",frame)  
+		ui.status = status  
+		status.Size = UDim2.new(1,-20,0,30)  
+		status.Position = UDim2.new(0,10,0.5,28)  
+		status.BackgroundTransparency = 1  
+		status.Text = "Starting up..."  
+		status.TextColor3 = Color3.fromRGB(180,180,180)  
+		status.Font = Enum.Font.GothamSemibold  
+		status.TextSize = 14  
+		status.TextWrapped = true  
+
+		local detail = Instance.new("TextLabel",frame)  
+		ui.detail = detail  
+		detail.Size = UDim2.new(1,-20,0,60)  
+		detail.Position = UDim2.new(0,10,0.5,62)  
+		detail.BackgroundTransparency = 1  
+		detail.Text = ""  
+		detail.TextColor3 = Color3.fromRGB(255,100,100)  
+		detail.Font = Enum.Font.GothamSemibold  
+		detail.TextSize = 11  
+		detail.TextWrapped = true  
+		detail.TextXAlignment = Enum.TextXAlignment.Left  
+		detail.Visible = false  
+
+		ts:Create(bg,TweenInfo.new(0.5),{BackgroundTransparency=0.4}):Play()  
+		ts:Create(frame,TweenInfo.new(0.6,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,350,0,180)}):Play()  
+		task.wait(0.8)  
+	end  
+
+	local function updateProgress(pct,txt)  
+		if ui.status then ui.status.Text = txt end  
+		if ui.barFill then  
+			ts:Create(ui.barFill,TweenInfo.new(0.3),{Size=UDim2.new(pct,0,1,0)}):Play()  
+		end  
+	end  
+
+	local function validate(data)  
+		if type(data) ~= "string" then return nil end  
+		if #data < 80 then return nil end  
+		local lower = string.lower(data)  
+		if string.find(lower,"<html") or string.find(lower,"<!doctype") then return nil end  
+		if not string.find(data,"function") then return nil end  
+		local f = loadstring(data)  
+		return f  
+	end  
+
+	local function downloadScript(url,name)  
+		for attempt = 1,3 do  
+			print("[Loader] Attempt "..attempt.." -> "..name)  
+
+			local result  
+			local ok,res = pcall(function() return game:HttpGet(url) end)  
+			if ok then result = res end  
+
+			local f = validate(result)  
+			if f then  
+				print("[Loader] Success -> "..name)  
+				return result,f  
+			end  
+		end  
+		return nil,nil  
+	end  
+
+	local function loadLocal(name,len)  
+		if not hasFileAPI or not isfile(name) then return nil,nil end  
+		local ok,data = pcall(readfile,name)  
+		if not ok then return nil,nil end  
+
+		if len and #data ~= len then  
+			pcall(delfile,name)  
+			return nil,nil  
+		end  
+
+		local f = validate(data)  
+		if not f then  
+			pcall(delfile,name)  
+			return nil,nil  
+		end  
+
+		return data,f  
+	end  
+
+	createLoaderUI()  
+	updateProgress(0,"Initializing...")  
+
+	pcall(function()  
+		local raw = game:HttpGet(repo.."versions.json")  
+		local decoded = HttpService:JSONDecode(raw)  
+		if type(decoded)=="table" then  
+			onlineVersions = decoded  
+			versionsOK = true  
+		end  
+	end)  
+
+	if hasFileAPI and isfile("versions.json") then  
+		pcall(function()  
+			local ok,decoded = pcall(function()  
+				return HttpService:JSONDecode(readfile("versions.json"))  
+			end)  
+			if ok and type(decoded)=="table" then  
+				localVersions = decoded  
+			end  
+		end)  
+	end  
+
+	if type(localVersions) ~= "table" then  
+		localVersions = {}  
+	end  
+
+	local total = #scripts  
+	local changed = false  
+
+	for i,s in ipairs(scripts) do  
+		updateProgress((i-1)/total,"Loading modules...")  
+
+		local code,func  
+
+		local online = onlineVersions[s.name]  
+		local localv = localVersions[s.name]  
+
+		local onlineHash = online and online.hash  
+		local onlineLen = online and online.len  
+
+		local localHash = localv and localv.hash  
+		local localLen = localv and localv.len  
+
+		if onlineHash and localHash and tostring(localHash)==tostring(onlineHash) then  
+			code,func = loadLocal(s.name,onlineLen)  
+		end  
+
+		if not code then  
+			if hasFileAPI and isfile(s.name) then  
+				pcall(delfile,s.name)  
+			end  
+
+			if ui.status then ui.status.Text = "Updating..." end  
+
+			code,func = downloadScript(s.url,s.name)  
+
+			if code and hasFileAPI then  
+				pcall(function() writefile(s.name,code) end)  
+
+				if onlineHash then  
+					localVersions[s.name] = {hash = onlineHash, len = #code}  
+					changed = true  
+				end  
+			end  
+		end  
+
+		if not func then  
+			return fail("Invalid Script",s.name,"Validation failed")  
+		end  
+
+		local ok,err = pcall(func)  
+		if not ok then  
+			return fail("Execution Failed",s.name,err)  
+		end  
+
+		if s.waitEnv then  
+			local t=0  
+			repeat task.wait(0.1) t+=0.1 until env.DeltaCmds or t>=10  
+			if t>=10 then  
+				return fail("Timeout","DeltaCmds Env","Not loaded")  
+			end  
+		end  
+	end  
+
+	if hasFileAPI and changed then  
+		pcall(function()  
+			writefile("versions.json", HttpService:JSONEncode(localVersions))  
+		end)  
+	end  
+
+	updateProgress(1,"Finalizing...")  
+	task.wait(0.5)  
+
+	if ui.frame then  
+		ts:Create(ui.frame,TweenInfo.new(0.4,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)}):Play()  
+	end  
+
+	if ui.bg then  
+		ts:Create(ui.bg,TweenInfo.new(0.4),{BackgroundTransparency=1}):Play()  
+	end  
+
+	task.wait(0.4)  
+
+	if ui.sg then  
+		pcall(function() ui.sg:Destroy() end)  
+	end  
+
+	env.DeltaObjects={}  
 end
