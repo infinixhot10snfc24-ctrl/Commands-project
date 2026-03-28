@@ -16,7 +16,7 @@ local function startWf()
 		local root=getRoot(p.Character)
 		if not root then return end
 		local v=root.Velocity
-		root.Velocity=v*10000
+		root.Velocity=v*20000
 		rs.RenderStepped:Wait()
 		root.Velocity=v
 	end)
