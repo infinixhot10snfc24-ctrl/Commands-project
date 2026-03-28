@@ -118,12 +118,12 @@ local function buildWarn()
 	wfTitleGrad.Color=ColorSequence.new{ColorSequenceKeypoint.new(0,_C(255,100,100)),ColorSequenceKeypoint.new(1,_C(255,60,60))}
 	local warnDivider=_N("Frame",warnFrame); warnDivider.Size=_U(1,-32,0,1); warnDivider.Position=_U(0,16,0,86)
 	warnDivider.BackgroundColor3=_C(80,30,30); warnDivider.BorderSizePixel=0; warnDivider.ZIndex=32
-	local warnBody=_N("TextLabel",warnFrame); warnBody.Size=_U(1,-32,0,60); warnBody.Position=_U(0,16,0,96)
+	local warnBody=_N("TextLabel",warnFrame); warnBody.Size=_U(1,-32,0,80); warnBody.Position=_U(0,16,0,96)
 	warnBody.BackgroundTransparency=1
 	warnBody.Text="This script uses hooking methods that may\nbe detected by some games.\n\nYour account could be at risk. It is\nrecommended to test this using an\nalternate account first."
 	warnBody.TextColor3=_C(200,180,180); warnBody.Font=_GS; warnBody.TextSize=12
 	warnBody.TextXAlignment=Enum.TextXAlignment.Center; warnBody.TextWrapped=true; warnBody.ZIndex=32
-	local warnBtnRow=_N("Frame",warnFrame); warnBtnRow.Size=_U(1,-32,0,42); warnBtnRow.Position=_U(0,16,0,164)
+	local warnBtnRow=_N("Frame",warnFrame); warnBtnRow.Size=_U(1,-32,0,42); warnBtnRow.Position=_U(0,16,0,184)
 	warnBtnRow.BackgroundTransparency=1; warnBtnRow.ZIndex=32
 	local wbLayout=_N("UIListLayout",warnBtnRow)
 	wbLayout.FillDirection=Enum.FillDirection.Horizontal; wbLayout.HorizontalAlignment=Enum.HorizontalAlignment.Center
@@ -146,7 +146,7 @@ local function showHookWarn(callback)
 	buildWarn()
 	warnOverlay.Visible=true; warnFrame.Size=_U(0,0,0,0)
 	ts:Create(warnOverlay,TweenInfo.new(0.2),{BackgroundTransparency=0.55}):Play()
-	ts:Create(warnFrame,TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=_U(0,320,0,216)}):Play()
+	ts:Create(warnFrame,TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=_U(0,320,0,240)}):Play()
 	local conns={}
 	local function close(proceed)
 		if not warnOpen then return end; warnOpen=false
@@ -158,6 +158,7 @@ local function showHookWarn(callback)
 	conns[#conns+1]=continueBtn.MouseButton1Click:Connect(function() close(true) end)
 	conns[#conns+1]=cancelBtn.MouseButton1Click:Connect(function() close(false) end)
 end
+local _startAutoClick
 local function makeACGui()
 	local UIS,GS=game:GetService("UserInputService"),game:GetService("GuiService")
 	local pl=getgenv().DeltaCmds and getgenv().DeltaCmds.Player or game:GetService("Players").LocalPlayer
@@ -200,12 +201,12 @@ local function makeACGui()
 		S.Text=ac.active and"ON"or"OFF"
 		S.BackgroundColor3=ac.active and _C(80,220,120)or _C(220,70,70)
 		bS.Color=ac.active and _C(80,220,120)or _C(220,70,70)
-		if ac.active then for _,e in ipairs(getgenv().DeltaCmds.Cmds)do for _,a in ipairs(e.aliases)do if a=="autoclicker"then e.fn();break end end end end
+		if ac.active and _startAutoClick then _startAutoClick() end
 	end)
 end
 local function _hookAC()
 	for _,e in ipairs(getgenv().DeltaCmds.Cmds)do for _,a in ipairs(e.aliases)do
-		if a=="autoclicker"then local o=e.fn;e.fn=function()makeACGui();o()end;return end
+		if a=="autoclicker"then _startAutoClick=e.fn;local o=e.fn;e.fn=function()makeACGui();o()end;return end
 	end end
 end
 _hookAC()
