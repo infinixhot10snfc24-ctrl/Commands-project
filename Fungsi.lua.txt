@@ -300,28 +300,83 @@ local function startEsp(name)
 end
 local function startFling(name)
 	if not name then return end
-	local a = resolveTargets(name)
-	if #a == 0 then return end
-	local t = a[math.random(#a)]
-	if t.UserId == 1414978355 then return end
-	local c, tc = p.Character, t.Character
-	local r, h = c and c:FindFirstChild("HumanoidRootPart"), c and c:FindFirstChild("Humanoid")
-	local tr = tc and (tc:FindFirstChild("HumanoidRootPart") or tc:FindFirstChild("Head"))
-	if not (r and h and tr) then return end
-	local o = r.CFrame
-	cam.CameraSubject = tr
-	local bv2 = Instance.new("BodyVelocity", r)
-	bv2.Velocity, bv2.MaxForce = Vector3.new(9e8,9e8,9e8), Vector3.new(math.huge,math.huge,math.huge)
-	h:SetStateEnabled(15, false)
-	local s = tick()
-	repeat
-		r.CFrame = tr.CFrame * CFrame.new(math.random(-2,2), math.random(-1,2), math.random(-2,2))
-		r.Velocity = Vector3.new(9e7,9e8,9e7); r.RotVelocity = Vector3.new(9e8,9e8,9e8)
-		task.wait()
-	until tr.Velocity.Magnitude > 500 or not t.Parent or not tc.Parent or h.Health <= 0 or tick()-s > 2
-	bv2:Destroy(); h:SetStateEnabled(15, true); cam.CameraSubject = h
-	r.Velocity, r.RotVelocity = Vector3.zero, Vector3.zero
-	r.CFrame = o * CFrame.new(0, 0.5, 0); h:ChangeState(8)
+	local targets = resolveTargets(name)
+	if #targets == 0 then return end
+	local targetPlayer = targets[math.random(#targets)]
+	local Character = p.Character
+	local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+	local RootPart = Humanoid and Humanoid.RootPart
+	local TCharacter = targetPlayer.Character
+	local THumanoid = TCharacter and TCharacter:FindFirstChildOfClass("Humanoid")
+	local TRootPart = THumanoid and THumanoid.RootPart
+	local THead = TCharacter and TCharacter:FindFirstChild("Head")
+	local Accessory = TCharacter and TCharacter:FindFirstChildOfClass("Accessory")
+	local Handle = Accessory and Accessory:FindFirstChild("Handle")
+	if not (Character and Humanoid and RootPart) then return end
+	if RootPart.Velocity.Magnitude < 50 then getgenv().OldPos = RootPart.CFrame end
+	if THumanoid and THumanoid.Sit then return end
+	if THead then cam.CameraSubject = THead
+	elseif Handle then cam.CameraSubject = Handle
+	else cam.CameraSubject = THumanoid end
+	if not TCharacter:FindFirstChildWhichIsA("BasePart") then return end
+	local function FPos(BasePart, Pos, Ang)
+		RootPart.CFrame = CFrame.new(BasePart.Position) * Pos * Ang
+		Character:SetPrimaryPartCFrame(CFrame.new(BasePart.Position) * Pos * Ang)
+		RootPart.Velocity = Vector3.new(9e7, 9e7*10, 9e7)
+		RootPart.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+	end
+	local function SFBasePart(BasePart)
+		local TimeToWait = 2
+		local Time = tick()
+		local Angle = 0
+		repeat
+			if RootPart and THumanoid then
+				if BasePart.Velocity.Magnitude < 50 then
+					Angle = Angle + 100
+					FPos(BasePart, CFrame.new(0,1.5,0)+THumanoid.MoveDirection*BasePart.Velocity.Magnitude/1.25, CFrame.Angles(math.rad(Angle),0,0)); task.wait()
+					FPos(BasePart, CFrame.new(0,-1.5,0)+THumanoid.MoveDirection*BasePart.Velocity.Magnitude/1.25, CFrame.Angles(math.rad(Angle),0,0)); task.wait()
+					FPos(BasePart, CFrame.new(2.25,1.5,-2.25)+THumanoid.MoveDirection*BasePart.Velocity.Magnitude/1.25, CFrame.Angles(math.rad(Angle),0,0)); task.wait()
+					FPos(BasePart, CFrame.new(-2.25,-1.5,2.25)+THumanoid.MoveDirection*BasePart.Velocity.Magnitude/1.25, CFrame.Angles(math.rad(Angle),0,0)); task.wait()
+					FPos(BasePart, CFrame.new(0,1.5,0)+THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle),0,0)); task.wait()
+					FPos(BasePart, CFrame.new(0,-1.5,0)+THumanoid.MoveDirection, CFrame.Angles(math.rad(Angle),0,0)); task.wait()
+				else
+					FPos(BasePart, CFrame.new(0,1.5,THumanoid.WalkSpeed), CFrame.Angles(math.rad(90),0,0)); task.wait()
+					FPos(BasePart, CFrame.new(0,-1.5,-THumanoid.WalkSpeed), CFrame.Angles(0,0,0)); task.wait()
+					FPos(BasePart, CFrame.new(0,1.5,THumanoid.WalkSpeed), CFrame.Angles(math.rad(90),0,0)); task.wait()
+					FPos(BasePart, CFrame.new(0,1.5,TRootPart.Velocity.Magnitude/1.25), CFrame.Angles(math.rad(90),0,0)); task.wait()
+					FPos(BasePart, CFrame.new(0,-1.5,-TRootPart.Velocity.Magnitude/1.25), CFrame.Angles(0,0,0)); task.wait()
+					FPos(BasePart, CFrame.new(0,1.5,TRootPart.Velocity.Magnitude/1.25), CFrame.Angles(math.rad(90),0,0)); task.wait()
+					FPos(BasePart, CFrame.new(0,-1.5,0), CFrame.Angles(math.rad(90),0,0)); task.wait()
+					FPos(BasePart, CFrame.new(0,-1.5,0), CFrame.Angles(0,0,0)); task.wait()
+					FPos(BasePart, CFrame.new(0,-1.5,0), CFrame.Angles(math.rad(-90),0,0)); task.wait()
+					FPos(BasePart, CFrame.new(0,-1.5,0), CFrame.Angles(0,0,0)); task.wait()
+				end
+			else break end
+		until BasePart.Velocity.Magnitude > 500 or BasePart.Parent ~= targetPlayer.Character or targetPlayer.Parent ~= Players or not targetPlayer.Character == TCharacter or THumanoid.Sit or Humanoid.Health <= 0 or tick() > Time + TimeToWait
+	end
+	local BV = Instance.new("BodyVelocity", RootPart)
+	BV.Name = "EpixVel"; BV.Velocity = Vector3.new(9e8,9e8,9e8); BV.MaxForce = Vector3.new(1/0,1/0,1/0)
+	Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+	if TRootPart and THead then
+		if (TRootPart.CFrame.p - THead.CFrame.p).Magnitude > 5 then SFBasePart(THead) else SFBasePart(TRootPart) end
+	elseif TRootPart and not THead then SFBasePart(TRootPart)
+	elseif not TRootPart and THead then SFBasePart(THead)
+	elseif not TRootPart and not THead and Accessory and Handle then SFBasePart(Handle)
+	else BV:Destroy(); Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true); cam.CameraSubject = Humanoid; return end
+	BV:Destroy()
+	Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+	cam.CameraSubject = Humanoid
+	if getgenv().OldPos then
+		repeat
+			RootPart.CFrame = getgenv().OldPos * CFrame.new(0,0.5,0)
+			Character:SetPrimaryPartCFrame(getgenv().OldPos * CFrame.new(0,0.5,0))
+			Humanoid:ChangeState("GettingUp")
+			for _, x in ipairs(Character:GetChildren()) do
+				if x:IsA("BasePart") then x.Velocity = Vector3.new(); x.RotVelocity = Vector3.new() end
+			end
+			task.wait()
+		until (RootPart.Position - getgenv().OldPos.p).Magnitude < 25
+	end
 end
 local function copyPos()
 	local root = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
