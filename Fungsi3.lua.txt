@@ -196,7 +196,7 @@ local function startInvis()
 	invisConn=rs.Heartbeat:Connect(function()
 		if not invisActive or not root or not root.Parent or not hum or not hum.Parent then return end
 		local origCF=root.CFrame; local origCO=hum.CameraOffset
-		local hiddenCF=origCF-origCF.Position+Vector3.new(origCF.X+200000,origCF.Y,origCF.Z)
+		local hiddenCF=origCF-origCF.Position+Vector3.new(origCF.X,origCF.Y-200000,origCF.Z)
 		root.CFrame=hiddenCF; hum.CameraOffset=origCF.Position-hiddenCF.Position
 		rs.RenderStepped:Wait()
 		root.CFrame=origCF; hum.CameraOffset=origCO
